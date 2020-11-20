@@ -18,9 +18,7 @@ def create_binary_list_from_int(number: int) -> List[int]:
     return [int(x) for x in list(bin(number))[2:]]
 
 
-def generate_even_data(
-    max_int: int, batch_size: int = 16
-) -> Tuple[List[int], List[List[int]]]:
+def generate_even_data(max_int: int, batch_size: int = 16) -> Tuple[List[int], List[List[int]]]:
     """An infinite data generator which yields
     Args:
         max_int: The maximum input integer value
@@ -47,9 +45,7 @@ def generate_even_data(
     return labels, data
 
 
-def convert_float_matrix_to_int_list(
-    float_matrix: np.array, threshold: float = 0.5
-) -> List[int]:
+def convert_float_matrix_to_int_list(float_matrix: np.array, threshold: float = 0.5) -> List[int]:
     """Converts generated output in binary list form to a list of integers
     Args:
         float_matrix: A matrix of values between 0 and 1 which we want to threshold and convert to

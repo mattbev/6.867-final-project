@@ -1,0 +1,5 @@
+python training.py --params utils/params.yaml
+
+# visdom
+python -m visdom.server
+http://localhost:8097/env/main
