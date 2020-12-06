@@ -26,7 +26,7 @@ import numpy as np
 
 #Importing custom packages
 from models import FashionMNISTCNN
-
+from utils import generic_train as train
 
 #Server Aggregation
 def aggregate(global_model, client_models):
@@ -50,12 +50,13 @@ def aggregate(global_model, client_models):
 ##                    Parameters                                       ##
 #########################################################################
     
-device = torch.device("cuda:0") #GPU
+# device = torch.device("cuda:0") #GPU
+device = torch.device("cpu")
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 2
 m = 10     #number of participants
-Rounds =5
+Rounds = 1
  
 #########################################################################
 ##                    Importing Dataset                                ##
@@ -127,7 +128,7 @@ for r in range(Rounds):
     loss = 0
     for i in range(m):
          
-       loss += train( client_models[i], device, trainloader[client_idx[i]],opt[i], NUM_EPOCHS)
+       loss += train( client_models[i], NUM_EPOCHS, trainloader[client_idx[i]], opt[i], criterion, device, verbose=True)[-1]
        print(' client %i  successfully trained the model' % i)
     losses_train.append(loss)
     # server aggregate

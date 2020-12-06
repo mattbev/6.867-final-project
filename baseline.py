@@ -185,20 +185,20 @@ if __name__ == "__main__":
     rounds = 1
     verbose = True
 
-    # basic_baseline = BasicBaseline(device=device)
-    # basic_baseline.load_data()
-    # print(basic_baseline.train(
-    #     num_epochs=num_epochs, 
-    #     verbose=True))
-    # print(basic_baseline.test())
+    basic_baseline = BasicBaseline(device=device)
+    basic_baseline.load_data()
+    print(basic_baseline.train(
+        num_epochs=num_epochs, 
+        verbose=True))
+    print(basic_baseline.test())
 
-    federated_baseline = FederatedBaseline(num_clients=num_clients)
-    federated_baseline.load_data()
-    print(federated_baseline.train(num_epochs=num_epochs, 
-        rounds=rounds, 
-        lr=lr, 
-        verbose=verbose))
-    print(federated_baseline.test())
+    # federated_baseline = FederatedBaseline(num_clients=num_clients)
+    # federated_baseline.load_data()
+    # print(federated_baseline.train(num_epochs=num_epochs, 
+    #     rounds=rounds, 
+    #     lr=lr, 
+    #     verbose=verbose))
+    # print(federated_baseline.test())
 
 
 
