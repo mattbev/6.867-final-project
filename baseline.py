@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
 import torch
 import numpy as np
 import torchvision.datasets as datasets
@@ -17,7 +16,7 @@ from copy import deepcopy
 
 from models import FashionMNISTCNN
 from utils import generic_train, test_total_accurcy, test_class_accuracy
-
+torch.manual_seed(1) #Set seed 
 
 class Baseline:
     def __init__(self, device="cpu"):
@@ -28,7 +27,6 @@ class Baseline:
     def load_data(self, batch_size=32):
         """
         load FashionMNIST data
-
         Args:
             batch_size (int, optional): the batch size. Defaults to 32.
         """        
@@ -47,7 +45,6 @@ class Baseline:
     def test(self):
         """
         test the accuracy of the model
-
         Returns:
             (tuple[float]): the overall and class-wise accuracies of the model
         """        
@@ -58,11 +55,9 @@ class Baseline:
     def _make_optimizer_and_loss(self, lr, momentum=0.9):
         """
         helper function to create an optimizer and loss function
-
         Args:
             lr (float): the learning rate
             momentum (float, optional): the momentum. Defaults to 0.9.
-
         Returns:
             (tuple[torch.nn.CrossEntropyLoss, torch.optim.SGD]): criterion and optimizer functions
         """        
@@ -79,41 +74,31 @@ class BasicBaseline(Baseline):
     def set_trainloader(self, trainloader):
         """
         set the trainloader for the model
-
         Args:
             trainloader (torch.utils.data.Dataloader): the training data data loader
         """        
         self.trainloader = trainloader
 
-    def train(self, num_epochs, lr=1e-3, verbose=False, print_summary=True):
+    def train(self, num_epochs, malicious,lr=1e-3, verbose=False):
         """
         train the basic baseline model
-
         Args:
             num_epochs (int): the number of epochs
             lr (float, optional): the learning rate. Defaults to 1e-3.
             verbose (bool, optional): do you want print output? Defaults to False.
-            print_summary (bool, optional): do you want to print a summary of your training params? Defaults to True.
-
         Returns:
             (list[floats]): the training losses
-        """       
-
-        if print_summary:
-            print(f"Training BasicBaseline model.")
-            print("========== HYPERPARAMETERS ==========")
-            print(f"num_epochs: {num_epochs}")
-            print(f"lr: {lr}")
-            print(f"verbose: {verbose}")
-            print("\n")
-
+        """        
         criterion, optimizer = self._make_optimizer_and_loss(lr)
         return generic_train(
             model=self.model, 
             num_epochs=num_epochs, 
             trainloader=self.trainloader, 
             optimizer=optimizer, 
-            criterion=criterion, 
+            criterion=criterion,  
+            malicious = malicious,
+            tl = tl,
+            tc = tc,
             device=self.device, 
             verbose=verbose)
 
@@ -124,31 +109,17 @@ class FederatedBaseline(Baseline):
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
 
-    def train(self, num_epochs, rounds, lr=1e-3, verbose=False, print_summary=True):
+    def train(self, num_epochs, rounds, lr=1e-3, verbose=False):
         """
         train the federated baseline model
-
         Args:
             num_epochs (int): the number of epochs
             rounts (int): the number of rounds to train clients
             lr (float, optional): the learning rate. Defaults to 1e-3.
             verbose (bool, optional): do you want print output? Defaults to False.
-            print_summary (bool, optional): do you want to print a summary of your training params? Defaults to True.
-
         Returns:
             (list[floats]): the training losses
         """   
-
-        if print_summary:
-            print(f"Training FederatedBaseline mode with {self.num_clients} clients.")
-            print("========== HYPERPARAMETERS ==========")
-            print(f"num_clients: {self.num_clients}")
-            print(f"num_epochs: {num_epochs}")
-            print(f"rounds: {rounds}")
-            print(f"lr: {lr}")
-            print(f"verbose: {verbose}")
-            print("\n")
-
         train_losses = []
         for r in range(rounds):
             client_trainloaders = self._make_client_trainloaders()
@@ -161,8 +132,8 @@ class FederatedBaseline(Baseline):
                 loss = client.train(
                     num_epochs=num_epochs,
                     lr=lr,
-                    verbose=verbose,
-                    print_summary=False
+                    malicious=malicious if i<= ml-1 else 0,
+                    verbose=verbose
                 )[-1]
                 client_models.append(client.model)
                 round_loss += loss
@@ -175,7 +146,6 @@ class FederatedBaseline(Baseline):
     def _make_client_trainloaders(self):
         """
         helper function to create client trainloader splits
-
         Returns:
             (list[torch.utils.data.Dataloader]): a list of dataloaders for the split data
         """        
@@ -186,7 +156,6 @@ class FederatedBaseline(Baseline):
     def aggregate(global_model, client_models):
         """
         global parameter updates aggregation.
-
         Args:
             global_model (torch.nn.Module): the global model
             client_models (list[torch.nn.Module]): the client models
@@ -194,45 +163,45 @@ class FederatedBaseline(Baseline):
         ### take simple mean of the weights of models ###
         global_dict = global_model.state_dict()
         for k in global_dict.keys():
-            global_dict[k] = torch.stack([client_models[i].state_dict()[k].float() for i in range(len(client_models))], 0).mean(0)
+            global_dict[k] = torch.stack([client_models[i].state_dict()[k].float()*upscale*(i <= ml -1) for i in range(len(client_models))], 0).mean(0)
         global_model.load_state_dict(global_dict)
         for model in client_models:
             model.load_state_dict(global_model.state_dict())
-
+            
 
 if __name__ == "__main__":
     # device = "cuda:0" #GPU
-    device = "cpu" #CPU
+    device = "cuda:0" #CPU
 
     batch_size = 32
     lr = 0.001
     num_epochs = 2
-    num_clients = 100
-    rounds = 2
+    num_clients = 10
+    rounds = 1
     verbose = True
-    
-    args = sys.argv
-    assert len(args) == 2, "incorrect number of arguments."
-    test = sys.argv[1]
 
-    if test == "basic":
-        basic_baseline = BasicBaseline(device=device)
-        basic_baseline.load_data()
-        print("losses:", basic_baseline.train(
-            num_epochs=num_epochs, 
-            verbose=True))
-        print("accuracies:", basic_baseline.test())
+    #Threat Model
+    ml =1 #Number of malicious participants
+    malicious = 2 # 0 no attack, 1 if universal attack, #2 if target attack
+    tl = 4 #Target label in a targeted attack
+    tc = 7  #Target missclassificatio.  Here, Classify sneakers as Dress
+    upscale = 7 #Scale factor for parameters update
 
-    elif test == "federated":
-        federated_baseline = FederatedBaseline(num_clients=num_clients)
-        federated_baseline.load_data()
-        print("losses:", federated_baseline.train(
-            num_epochs=num_epochs, 
-            rounds=rounds, 
-            lr=lr, 
-            verbose=verbose))
-        print("accuracies:",  federated_baseline.test())
+    # basic_baseline = BasicBaseline(device=device)
+    # basic_baseline.load_data()
+    # print(basic_baseline.train(
+    #     num_epochs=num_epochs, 
+    #     verbose=True))
+    # print(basic_baseline.test())
 
+    federated_baseline = FederatedBaseline(num_clients=num_clients,device="cuda:0")
+    federated_baseline.load_data()
+    print(federated_baseline.train(
+        num_epochs=num_epochs, 
+        rounds=rounds, 
+        lr=lr, 
+        verbose=verbose))
+    print(federated_baseline.test())
 
 
 
