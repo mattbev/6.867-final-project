@@ -1,7 +1,28 @@
-# gan adversarial attacks
+# GAN Adversarial Attacks
 Generative adversarial attacks on federate using GANs and UAP.
 
-# Strategy suggestion 
+## Usage
+There exists a BasicBaseline and FederatedBaseline class in `baseline.py`. The usage is very similar between the two.
+
+### BasicBaseline
+To create, train, and test a basic CNN baseline perform the following:
+```
+basic_baseline = BasicBaseline()
+basic_baseline.load_data() # load the FashionMNIST data
+basic_baseline.train(num_epochs, lr)
+basic_baseline.test()
+```
+
+### FederatedBaseline
+To create, train, and test a federated CNN baseline perform the following:
+```
+federated_baseline = FederatedBaseline(num_clients)
+federated_baseline.load_data()
+federated_baseline.train(num_epochs, rounds, lr)
+federated_baseline.test()
+```
+
+# (internal) Strategy suggestion 
 
 ## Presentation
 I think we can proceed as following, since we only have 10 minutes to present.
