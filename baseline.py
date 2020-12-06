@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader, random_split
+from copy import deepcopy
 
 from models import FashionMNISTCNN
 from utils import generic_train, test_total_accurcy, test_class_accuracy
@@ -102,7 +103,7 @@ class FederatedBaseline(Baseline):
     def __init__(self, num_clients, device="cpu"):
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
-        self.client_models = [FashionMNISTCNN() for _ in range(num_clients)]
+        self.client_models = [self.model for _ in range(num_clients)]
         
         for client in self.client_models:
             client.load_state_dict(self.model.state_dict()) # initial synchronizing with global model 
@@ -120,7 +121,7 @@ class FederatedBaseline(Baseline):
 
         Returns:
             (list[floats]): the training losses
-        """        
+        """       
         criterions_and_optimizers = [self._make_optimizer_and_loss(lr) for _ in range(self.num_clients)]
         client_trainloaders = self._make_client_trainloaders()
         train_losses = []
@@ -129,18 +130,18 @@ class FederatedBaseline(Baseline):
             round_loss = 0.0
             for i in range(self.num_clients):
                 criterion, optimizer = criterions_and_optimizers[i]
-                client_round_train_losses = generic_train(
+                loss = generic_train(
                     model=self.client_models[i], 
                     num_epochs=num_epochs, 
                     trainloader=client_trainloaders[client_idx[i]], 
                     optimizer=optimizer, 
                     criterion=criterion, 
                     device=self.device,
-                    verbose=verbose)
-                round_loss += client_round_train_losses[-1]
+                    verbose=verbose)[-1]
+                round_loss += loss
                 if verbose:
-                    print(f"client {i} successfully trained in round {r} \t loss: {round_loss}\n")
-            train_losses.append(round_loss)
+                    print(f"client {i} trained, round {r} \t loss: {round(loss, 3)}\n")
+            train_losses.append(round_loss / self.num_clients)
             self.aggregate(self.model, self.client_models)
         return train_losses
 
@@ -185,20 +186,21 @@ if __name__ == "__main__":
     rounds = 1
     verbose = True
 
-    basic_baseline = BasicBaseline(device=device)
-    basic_baseline.load_data()
-    print(basic_baseline.train(
-        num_epochs=num_epochs, 
-        verbose=True))
-    print(basic_baseline.test())
+    # basic_baseline = BasicBaseline(device=device)
+    # basic_baseline.load_data()
+    # print(basic_baseline.train(
+    #     num_epochs=num_epochs, 
+    #     verbose=True))
+    # print(basic_baseline.test())
 
-    # federated_baseline = FederatedBaseline(num_clients=num_clients)
-    # federated_baseline.load_data()
-    # print(federated_baseline.train(num_epochs=num_epochs, 
-    #     rounds=rounds, 
-    #     lr=lr, 
-    #     verbose=verbose))
-    # print(federated_baseline.test())
+    federated_baseline = FederatedBaseline(num_clients=num_clients)
+    federated_baseline.load_data()
+    print(federated_baseline.train(
+        num_epochs=num_epochs, 
+        rounds=rounds, 
+        lr=lr, 
+        verbose=verbose))
+    print(federated_baseline.test())
 
 
 

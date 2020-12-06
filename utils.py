@@ -57,7 +57,7 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
                     print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
                     running_loss = 0.0
 
-        train_losses.append(running_loss) #this is buggy
+        train_losses.append(running_loss / print_every) #this is buggy
 
     return train_losses
             
@@ -86,7 +86,7 @@ def test_total_accurcy(model, testloader, device="cpu"):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    return correct/total
+    return correct / total
 
 
 def test_class_accuracy(model, testloader, device="cpu"):
