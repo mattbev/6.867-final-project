@@ -33,13 +33,13 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
         (list[float]): the training loss per epoch 
     """ 
     print_every = 50
-
     if type(device) == str:  
         device = torch.device(device) 
     model.train()
     train_losses = []
     for epoch in range(num_epochs):  # loop over the dataset multiple time
         running_loss = 0.0
+        epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
             optimizer.zero_grad() # zero the parameter gradients
@@ -56,8 +56,8 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
                 if i % print_every == 0 and i != 0:  
                     print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
                     running_loss = 0.0
-
-        train_losses.append(running_loss / print_every) #this is buggy
+            epoch_loss += loss.item()
+        train_losses.append(epoch_loss / len(trainloader)) #this is buggy
 
     return train_losses
             

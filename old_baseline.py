@@ -74,7 +74,7 @@ class Baseline:
 class BasicBaseline(Baseline):
     def __init__(self, device="cpu"):
         super(BasicBaseline, self).__init__(device=device)
-        
+
     def set_trainloader(self, trainloader):
         """
         set the trainloader for the model
@@ -112,6 +112,11 @@ class FederatedBaseline(Baseline):
     def __init__(self, num_clients, device="cpu"):
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
+        # self.client_models = [deepcopy(self.model) for _ in range(num_clients)]
+        
+        # for client in self.client_models:
+        #     client.load_state_dict(self.model.state_dict()) # initial synchronizing with global model 
+
 
     def train(self, num_epochs, rounds, lr=1e-3, verbose=False):
         """
@@ -128,7 +133,13 @@ class FederatedBaseline(Baseline):
         """   
         train_losses = []
         for r in range(rounds):
+            # criterions_and_optimizers = [self._make_optimizer_and_loss(lr) for _ in range(self.num_clients)]
             client_trainloaders = self._make_client_trainloaders()
+            # client_models = [deepcopy(self.model) for _ in range(self.num_clients)]
+            # client_models = [FashionMNISTCNN().to(self.device) for _ in range(self.num_clients)]
+            # for client_model in client_models:
+            #     client_model.load_state_dict(self.model.state_dict())
+            # client_idx = np.random.permutation(self.num_clients)[:self.num_clients]
             round_loss = 0.0
             client_models = []
             for i in range(self.num_clients):
@@ -141,12 +152,26 @@ class FederatedBaseline(Baseline):
                     verbose=verbose
                 )[-1]
                 client_models.append(client.model)
+
+                # criterion, optimizer = criterions_and_optimizers[i]
+                # loss = generic_train(
+                #     # model=client_models[i], 
+                #     model=FashionMNISTCNN(),
+                #     num_epochs=num_epochs, 
+                #     # trainloader=client_trainloaders[client_idx[i]], 
+                #     # trainloader=client_trainloaders[i],
+                #     trainloader=self.trainloader,
+                #     optimizer=optimizer, 
+                #     criterion=criterion, 
+                #     device=self.device,
+                #     verbose=verbose)[-1]
                 round_loss += loss
                 if verbose:
                     print(f"--> client {i} trained, round {r} \t final loss: {round(loss, 3)}\n")
             train_losses.append(round_loss / self.num_clients)
             self.aggregate(self.model, client_models)
         return train_losses
+
 
     def _make_client_trainloaders(self):
         """
@@ -157,6 +182,7 @@ class FederatedBaseline(Baseline):
         """        
         trainset_split = random_split(self.trainset, [int(len(self.trainset) / self.num_clients) for _ in range(self.num_clients)])
         return [DataLoader(x, batch_size=self.batch_size, shuffle=True) for x in trainset_split]
+
 
     @staticmethod
     def aggregate(global_model, client_models):
@@ -184,7 +210,7 @@ if __name__ == "__main__":
     lr = 0.001
     num_epochs = 2
     num_clients = 10
-    rounds = 2
+    rounds = 1
     verbose = True
 
     # basic_baseline = BasicBaseline(device=device)
