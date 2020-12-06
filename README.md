@@ -2,7 +2,7 @@
 Generative adversarial attacks on federate using GANs and UAP.
 
 ## Usage
-There exists a BasicBaseline and FederatedBaseline class in `baseline.py`. The usage is very similar between the two.
+There exist BasicBaseline and FederatedBaseline classes in `baseline.py`. The usage is very similar between the two.
 
 ### BasicBaseline
 To create, train, and test a basic CNN baseline perform the following:
