@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import sys
 import torch
 import numpy as np
 import torchvision.datasets as datasets
@@ -141,6 +142,7 @@ class FederatedBaseline(Baseline):
         if print_summary:
             print(f"Training FederatedBaseline mode with {self.num_clients} clients.")
             print("========== HYPERPARAMETERS ==========")
+            print(f"num_clients: {self.num_clients}")
             print(f"num_epochs: {num_epochs}")
             print(f"rounds: {rounds}")
             print(f"lr: {lr}")
@@ -205,25 +207,32 @@ if __name__ == "__main__":
     batch_size = 32
     lr = 0.001
     num_epochs = 2
-    num_clients = 10
+    num_clients = 100
     rounds = 2
     verbose = True
+    
+    args = sys.argv
+    assert len(args) == 2, "incorrect number of arguments."
+    test = sys.argv[1]
 
-    basic_baseline = BasicBaseline(device=device)
-    basic_baseline.load_data()
-    print("losses:", basic_baseline.train(
-        num_epochs=num_epochs, 
-        verbose=True))
-    print("accuracies:", basic_baseline.test())
+    if test == "basic":
+        basic_baseline = BasicBaseline(device=device)
+        basic_baseline.load_data()
+        print("losses:", basic_baseline.train(
+            num_epochs=num_epochs, 
+            verbose=True))
+        print("accuracies:", basic_baseline.test())
 
-    # federated_baseline = FederatedBaseline(num_clients=num_clients)
-    # federated_baseline.load_data()
-    # print("losses:", federated_baseline.train(
-    #     num_epochs=num_epochs, 
-    #     rounds=rounds, 
-    #     lr=lr, 
-    #     verbose=verbose))
-    # print("accuracies:",  federated_baseline.test())
+    elif test == "federated":
+        federated_baseline = FederatedBaseline(num_clients=num_clients)
+        federated_baseline.load_data()
+        print("losses:", federated_baseline.train(
+            num_epochs=num_epochs, 
+            rounds=rounds, 
+            lr=lr, 
+            verbose=verbose))
+        print("accuracies:",  federated_baseline.test())
+
 
 
 
