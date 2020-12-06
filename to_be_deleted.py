@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Dec  4 19:24:35 2020
 
-@author: victo
-"""
 #########################################################################
 ##                        Libraries                                    ##
 #########################################################################
@@ -27,57 +23,27 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import confusion_matrix
 import numpy as np
 
-#########################################################################
-##                    Auxiliary functions                              ##
-#########################################################################
 
+#Importing custom packages
+from models import FashionMNISTCNN
 
-#Display image
-def imshow(img):
-    img = img / 2 + 0.5     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-    
-
-
-#Training
-def train( model, device, trainloader,optimizer, NUM_EPOCHS):
-    model.train()
-    for epoch in range(NUM_EPOCHS):  # loop over the dataset multiple times
-
-        running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data[0].to(device), data[1].to(device)
-
-        # zero the parameter gradients
-            optimizer.zero_grad()
-
-        # forward + backward + optimize
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-        # print statistics
-            # running_loss += loss.item()
-            # if i % 32 == 31:    # print every 2000 mini-batches
-            #    print('[%d, %5d] loss: %.3f' %
-            #          (epoch + 1, i + 1, running_loss / 32))
-            #    running_loss = 0.0
-
-    return loss.item()
 
 #Server Aggregation
 def aggregate(global_model, client_models):
-    ### This will take simple mean of the weights of models ###
-      global_dict = global_model.state_dict()
-      for k in global_dict.keys():
-          global_dict[k] = torch.stack([client_models[i].state_dict()[k].float() for i in range(len(client_models))], 0).mean(0)
-      global_model.load_state_dict(global_dict)
-      for model in client_models:
-          model.load_state_dict(global_model.state_dict())
+    """
+    global parameter updates aggregation.
+
+    Args:
+        global_model (torch.nn.Module): the global model
+        client_models (list[torch.nn.Module]): the client models
+    """    
+    ### take simple mean of the weights of models ###
+    global_dict = global_model.state_dict()
+    for k in global_dict.keys():
+        global_dict[k] = torch.stack([client_models[i].state_dict()[k].float() for i in range(len(client_models))], 0).mean(0)
+    global_model.load_state_dict(global_dict)
+    for model in client_models:
+        model.load_state_dict(global_model.state_dict())
           
           
 #########################################################################
@@ -121,34 +87,6 @@ classes = ('T-Shirt','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneak
 ########################################################################
 ##                   Neural Network Architecture                      ##
 ########################################################################
-
-class FashionMNISTCNN(nn.Module):
-
-    def __init__(self):
-        super(FashionMNISTCNN, self).__init__()
-
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, padding=2),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size=5, padding=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-
-        self.fc = nn.Linear(7*7*32, 10)
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-
-        x = x.view(x.size(0), -1)
-
-        x = self.fc(x)
-
-        return x
 
 FashionMNISTCNN = FashionMNISTCNN()
 #Run on GPU

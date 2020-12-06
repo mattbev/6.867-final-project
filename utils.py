@@ -1,59 +1,116 @@
-import math
-
+import torch
 import numpy as np
+import matplotlib.pyplot as plt
 
-from typing import List, Tuple
 
-
-def create_binary_list_from_int(number: int) -> List[int]:
-    """Creates a list of the binary representation of a positive integer
-    Args:
-        number: An integer
-    Returns:
-        The binary representation of the provided positive integer number as a list.
+def imshow(img):
     """
-    if number < 0 or type(number) is not int:
-        raise ValueError("Only Positive integers are allowed")
+    show an image
 
-    return [int(x) for x in list(bin(number))[2:]]
-
-
-def generate_even_data(max_int: int, batch_size: int = 16) -> Tuple[List[int], List[List[int]]]:
-    """An infinite data generator which yields
     Args:
-        max_int: The maximum input integer value
-        batch_size: The size of the training batch.
-    Returns:
-        A Tuple with the labels and the input data.
-        labels:
-        data:
+        img (TODO): the image to display
+    """    
+    img = img / 2 + 0.5  # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+    
+
+def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="cpu", verbose=False):
     """
+    train a model
 
-    # Get the number of binary places needed to represent the maximum number
-    max_length = int(math.log(max_int, 2))
-
-    # Sample batch_size number of integers in range 0-max_int
-    sampled_integers = np.random.randint(0, int(max_int / 2), batch_size)
-
-    # create a list of labels all ones because all numbers are even
-    labels = [1] * batch_size
-
-    # Generate a list of binary numbers for training.
-    data = [create_binary_list_from_int(int(x * 2)) for x in sampled_integers]
-    data = [([0] * (max_length - len(x))) + x for x in data]
-
-    return labels, data
-
-
-def convert_float_matrix_to_int_list(float_matrix: np.array, threshold: float = 0.5) -> List[int]:
-    """Converts generated output in binary list form to a list of integers
     Args:
-        float_matrix: A matrix of values between 0 and 1 which we want to threshold and convert to
-            integers
-        threshold: The cutoff value for 0 and 1 thresholding.
+        model (torch.nn.Module): the model to train
+        num_epochs (int): the number of epochs
+        trainloader (torch.utils.data.Dataloader): the training dataset dataloader
+        optimizer (torch.optim.*): the function to optimize with
+        criterion (torch.nn.*): the loss function
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+        verbose (bool, optional): extended print statement? Defaults to False.
+
     Returns:
-        A list of integers.
+        (list[float]): the training loss per epoch 
+    """ 
+    print_every = 50
+
+    if type(device) == str:  
+        device = torch.device(device) 
+    model.train()
+    train_losses = []
+    for epoch in range(num_epochs):  # loop over the dataset multiple time
+        running_loss = 0.0
+        for i, data in enumerate(trainloader, 0):
+            inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
+            optimizer.zero_grad() # zero the parameter gradients
+
+            # forward + backward + optimize
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            if verbose:
+                running_loss += loss.item()
+                if i % print_every == 0 and i != 0:  
+                    print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
+                    running_loss = 0.0
+
+        train_losses.append(running_loss) #this is buggy
+
+    return train_losses
+            
+
+def test_total_accurcy(model, testloader, device="cpu"):
     """
-    return [
-        int("".join([str(int(y)) for y in x]), 2) for x in float_matrix >= threshold
-    ]
+    compute the (pure) accuracy over a test set 
+
+    Args:
+        model (torch.nn.Module): [description]
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+
+    Returns:
+        (float): the accuracy
+    """  
+    if type(device) == str:  
+        device = torch.device(device) 
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    return correct/total
+
+
+def test_class_accuracy(model, testloader, device="cpu"):
+    """
+    compute (pure) accuracy per class in the test set
+
+    Args:
+        model (torch.nn.Module): the model to evaluate
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+    """    
+    if type(device) == str:  
+        device = torch.device(device) 
+    class_correct = np.array([0. for i in range(10)])
+    class_total = np.array([0. for i in range(10)])
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    return class_correct / class_total

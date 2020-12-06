@@ -1,195 +1,206 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Dec  4 19:24:35 2020
 
-@author: victo
-"""
-#########################################################################
-##                        Libraries                                    ##
-#########################################################################
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-#Importing Libraries 
-import pandas as pd
-import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
-import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import Dataset, DataLoader
-from sklearn.metrics import confusion_matrix
 import numpy as np
+import torchvision.datasets as datasets
+import torch.nn as nn
+import torch.optim as optim
+import torchvision.transforms as transforms
+from torch.utils.data import Dataset, DataLoader, random_split
 
-#########################################################################
-##                    Auxiliary functions                              ##
-#########################################################################
-
-
-#Display image
-def imshow(img):
-    img = img / 2 + 0.5     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-    
+from models import FashionMNISTCNN
+from utils import generic_train, test_total_accurcy, test_class_accuracy
 
 
-#Training
-def train( model, device, train_loader,optimizer, NUM_EPOCHS):
-    model.train()
-    for epoch in range(NUM_EPOCHS):  # loop over the dataset multiple times
+class Baseline:
+    def __init__(self, device="cpu"):
+        self.device = torch.device(device)
+        self.model = FashionMNISTCNN()
+        self.model.to(self.device)
 
-        running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data[0].to(device), data[1].to(device)
+    def load_data(self, batch_size=32):
+        """
+        load FashionMNIST data
 
-        # zero the parameter gradients
-            optimizer.zero_grad()
+        Args:
+            batch_size (int, optional): the batch size. Defaults to 32.
+        """        
+        self.batch_size = batch_size
+        #transforming the PIL Image to tensors and normalize to [-1,1]
+        transform = transforms.Compose(
+            [transforms.ToTensor(),
+            transforms.Normalize((0.5, ), (0.5, ),)])
+        self.trainset = datasets.FashionMNIST(root="./data", train=True, download=True, transform=transform)
+        self.testset = datasets.FashionMNIST(root="./data", train=False, download=True, transform=transform)
+        
+        self.classes = ('T-Shirt','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle Boot')
+        self.trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, shuffle = True)
+        self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=batch_size, shuffle=False)
 
-        # forward + backward + optimize
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+    def test(self):
+        """
+        test the accuracy of the model
 
-        # print statistics
-            running_loss += loss.item()
-            if i % 32 == 31:    # print every 2000 mini-batches
-               print('[%d, %5d] loss: %.3f' %
-                     (epoch + 1, i + 1, running_loss / 2000))
-               running_loss = 0.0
-            
-            
+        Returns:
+            (tuple[float]): the overall and class-wise accuracies of the model
+        """        
+        total_acc = test_total_accurcy(self.model, self.testloader, self.device)
+        class_acc = test_class_accuracy(self.model, self.testloader, self.device)
+        return total_acc, class_acc
 
+    def _make_optimizer_and_loss(self, lr, momentum=0.9):
+        """
+        helper function to create an optimizer and loss function
 
-#########################################################################
-##                    Parameters                                       ##
-#########################################################################
-    
-device = torch.device("cuda:0") #GPU
-BATCH_SIZE = 32
-LEARNING_RATE = 0.001
-NUM_EPOCHS = 2
+        Args:
+            lr (float): the learning rate
+            momentum (float, optional): the momentum. Defaults to 0.9.
 
-#########################################################################
-##                    Importing Dataset                                ##
-#########################################################################
-
-#transforming the PIL Image to tensors and normalize to [-1,1]
-transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, ), (0.5, ),)])
-
-
-
-trainset = torchvision.datasets.FashionMNIST(root = "./data", train = True, download = True, transform = transform)
-testset = torchvision.datasets.FashionMNIST(root = "./data", train = False, download = True, transform = transform)
-
-
-#loading the training data from trainset
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle = True)
-#loading the test data from testset
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False)
-
-#Classes name
-classes = ('T-Shirt','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle Boot')
+        Returns:
+            (tuple[torch.nn.CrossEntropyLoss, torch.optim.SGD]): criterion and optimizer functions
+        """        
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
+        return criterion, optimizer
 
 
-########################################################################
-##                   Neural Network Architecture                      ##
-########################################################################
 
-class FashionMNISTCNN(nn.Module):
+class BasicBaseline(Baseline):
+    def __init__(self, device="cpu"):
+        super(BasicBaseline, self).__init__(device=device)
 
-    def __init__(self):
-        super(FashionMNISTCNN, self).__init__()
+    def train(self, num_epochs, lr=1e-3, verbose=False):
+        """
+        train the basic baseline model
 
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, padding=2),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size=5, padding=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
+        Args:
+            num_epochs (int): the number of epochs
+            lr (float, optional): the learning rate. Defaults to 1e-3.
+            verbose (bool, optional): do you want print output? Defaults to False.
 
-        self.fc = nn.Linear(7*7*32, 10)
-
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-
-        x = x.view(x.size(0), -1)
-
-        x = self.fc(x)
-
-        return x
-
-FashionMNISTCNN = FashionMNISTCNN()
-#Run on GPU
-FashionMNISTCNN = FashionMNISTCNN.to(device)
-########################################################################
-##                         Loss Function                              ##
-########################################################################
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(FashionMNISTCNN.parameters(), lr=LEARNING_RATE, momentum=0.9)
+        Returns:
+            (list[floats]): the training losses
+        """        
+        criterion, optimizer = self._make_optimizer_and_loss(lr)
+        return generic_train(
+            model=self.model, 
+            num_epochs=num_epochs, 
+            trainloader=self.trainloader, 
+            optimizer=optimizer, 
+            criterion=criterion, 
+            device=self.device, 
+            verbose=verbose)
 
 
-########################################################################
-##                        Training                                    ##
-########################################################################
 
-#Train on GPU
-train( FashionMNISTCNN, device, trainloader,optimizer, NUM_EPOCHS)
-
-########################################################################
-##                        Testing                                     ##
-########################################################################
-
-#Overall Accuracy
-
-correct = 0
-total = 0
-with torch.no_grad():
-    for data in testloader:
-        images, labels = data[0].to(device), data[1].to(device)
-        outputs = FashionMNISTCNN(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-
-print('Accuracy of the network on the 10000 test images: %d %%' % (
-    100 * correct / total))
+class FederatedBaseline(Baseline):
+    def __init__(self, num_clients, device="cpu"):
+        super(FederatedBaseline, self).__init__(device=device)
+        self.num_clients = num_clients
+        self.client_models = [FashionMNISTCNN() for _ in range(num_clients)]
+        
+        for client in self.client_models:
+            client.load_state_dict(self.model.state_dict()) # initial synchronizing with global model 
 
 
-#For each class
+    def train(self, num_epochs, rounds, lr=1e-3, verbose=False):
+        """
+        train the federated baseline model
 
-class_correct = list(0. for i in range(10))
-class_total = list(0. for i in range(10))
-with torch.no_grad():
-    for data in testloader:
-        images, labels = data[0].to(device), data[1].to(device)
-        outputs = FashionMNISTCNN(images)
-        _, predicted = torch.max(outputs, 1)
-        c = (predicted == labels).squeeze()
-        for i in range(4):
-            label = labels[i]
-            class_correct[label] += c[i].item()
-            class_total[label] += 1
+        Args:
+            num_epochs (int): the number of epochs
+            rounts (int): the number of rounds to train clients
+            lr (float, optional): the learning rate. Defaults to 1e-3.
+            verbose (bool, optional): do you want print output? Defaults to False.
+
+        Returns:
+            (list[floats]): the training losses
+        """        
+        criterions_and_optimizers = [self._make_optimizer_and_loss(lr) for _ in range(self.num_clients)]
+        client_trainloaders = self._make_client_trainloaders()
+        train_losses = []
+        for r in range(rounds):
+            client_idx = np.random.permutation(self.num_clients)[:self.num_clients]
+            round_loss = 0.0
+            for i in range(self.num_clients):
+                criterion, optimizer = criterions_and_optimizers[i]
+                client_round_train_losses = generic_train(
+                    model=self.client_models[i], 
+                    num_epochs=num_epochs, 
+                    trainloader=client_trainloaders[client_idx[i]], 
+                    optimizer=optimizer, 
+                    criterion=criterion, 
+                    device=self.device,
+                    verbose=verbose)
+                round_loss += client_round_train_losses[-1]
+                if verbose:
+                    print(f"client {i} successfully trained in round {r} \t loss: {round_loss}\n")
+            train_losses.append(round_loss)
+            self.aggregate(self.model, self.client_models)
+        return train_losses
 
 
-for i in range(10):
-    print('Accuracy of %5s : %2d %%' % (
-        classes[i], 100 * class_correct[i] / class_total[i]))
+    def _make_client_trainloaders(self):
+        """
+        helper function to create client trainloader splits
+
+        Returns:
+            (list[torch.utils.data.Dataloader]): a list of dataloaders for the split data
+        """        
+        trainset_split = random_split(self.trainset, [int(self.trainset.data.shape[0] / self.num_clients) for _ in range(self.num_clients)])
+        return [DataLoader(x, batch_size=self.batch_size, shuffle=True) for x in trainset_split]
+
+
+    @staticmethod
+    def aggregate(global_model, client_models):
+        """
+        global parameter updates aggregation.
+
+        Args:
+            global_model (torch.nn.Module): the global model
+            client_models (list[torch.nn.Module]): the client models
+        """    
+        ### take simple mean of the weights of models ###
+        global_dict = global_model.state_dict()
+        for k in global_dict.keys():
+            global_dict[k] = torch.stack([client_models[i].state_dict()[k].float() for i in range(len(client_models))], 0).mean(0)
+        global_model.load_state_dict(global_dict)
+        for model in client_models:
+            model.load_state_dict(global_model.state_dict())
+
+
+if __name__ == "__main__":
+    # device = "cuda:0" #GPU
+    device = "cpu" #CPU
+
+    batch_size = 32
+    lr = 0.001
+    num_epochs = 2
+    num_clients = 10
+    rounds = 1
+    verbose = True
+
+    # basic_baseline = BasicBaseline(device=device)
+    # basic_baseline.load_data()
+    # print(basic_baseline.train(
+    #     num_epochs=num_epochs, 
+    #     verbose=True))
+    # print(basic_baseline.test())
+
+    federated_baseline = FederatedBaseline(num_clients=num_clients)
+    federated_baseline.load_data()
+    print(federated_baseline.train(num_epochs=num_epochs, 
+        rounds=rounds, 
+        lr=lr, 
+        verbose=verbose))
+    print(federated_baseline.test())
+
+
+
 
 
