@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 def imshow(img):
     """
     show an image
-
     Args:
         img (TODO): the image to display
     """    
@@ -16,10 +15,9 @@ def imshow(img):
     plt.show()
     
 
-def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="cpu", verbose=False):
+def generic_train(model, num_epochs, trainloader, optimizer, criterion, malicious,tl,tc, device="cpu",verbose=False):
     """
     train a model
-
     Args:
         model (torch.nn.Module): the model to train
         num_epochs (int): the number of epochs
@@ -28,13 +26,13 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
         criterion (torch.nn.*): the loss function
         device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
         verbose (bool, optional): extended print statement? Defaults to False.
-
     Returns:
         (list[float]): the training loss per epoch 
     """ 
     print_every = 50
     if type(device) == str:  
         device = torch.device(device) 
+    model = model.to(device)
     model.train()
     train_losses = []
     for epoch in range(num_epochs):  # loop over the dataset multiple time
@@ -42,6 +40,10 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
         epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
+            if malicious ==1:
+                labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
+            if malicious ==2:
+                labels[labels == tl] = tc
             optimizer.zero_grad() # zero the parameter gradients
 
             # forward + backward + optimize
@@ -65,12 +67,10 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, device="
 def test_total_accurcy(model, testloader, device="cpu"):
     """
     compute the (pure) accuracy over a test set 
-
     Args:
         model (torch.nn.Module): [description]
         testloader (torch.utils.data.Dataloader): the test set dataloader
         device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
-
     Returns:
         (float): the accuracy
     """  
@@ -92,7 +92,6 @@ def test_total_accurcy(model, testloader, device="cpu"):
 def test_class_accuracy(model, testloader, device="cpu"):
     """
     compute (pure) accuracy per class in the test set
-
     Args:
         model (torch.nn.Module): the model to evaluate
         testloader (torch.utils.data.Dataloader): the test set dataloader
