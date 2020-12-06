@@ -99,7 +99,7 @@ class BasicBaseline(Baseline):
         """       
 
         if print_summary:
-            print(f"Training FederatedBaseline model.")
+            print(f"Training BasicBaseline model.")
             print("========== HYPERPARAMETERS ==========")
             print(f"num_epochs: {num_epochs}")
             print(f"lr: {lr}")
@@ -209,21 +209,21 @@ if __name__ == "__main__":
     rounds = 2
     verbose = True
 
-    # basic_baseline = BasicBaseline(device=device)
-    # basic_baseline.load_data()
-    # print("losses:", basic_baseline.train(
-    #     num_epochs=num_epochs, 
-    #     verbose=True))
-    # print("accuracies:", basic_baseline.test())
-
-    federated_baseline = FederatedBaseline(num_clients=num_clients)
-    federated_baseline.load_data()
-    print("losses:", federated_baseline.train(
+    basic_baseline = BasicBaseline(device=device)
+    basic_baseline.load_data()
+    print("losses:", basic_baseline.train(
         num_epochs=num_epochs, 
-        rounds=rounds, 
-        lr=lr, 
-        verbose=verbose))
-    print("accuracies:",  federated_baseline.test())
+        verbose=True))
+    print("accuracies:", basic_baseline.test())
+
+    # federated_baseline = FederatedBaseline(num_clients=num_clients)
+    # federated_baseline.load_data()
+    # print("losses:", federated_baseline.train(
+    #     num_epochs=num_epochs, 
+    #     rounds=rounds, 
+    #     lr=lr, 
+    #     verbose=verbose))
+    # print("accuracies:",  federated_baseline.test())
 
 
 
