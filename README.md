@@ -7,19 +7,19 @@ There exist BasicBaseline and FederatedBaseline classes in `baseline.py`. The us
 ### BasicBaseline
 To create, train, and test a basic CNN baseline perform the following:
 ```
-basic_baseline = BasicBaseline()
+basic_baseline = BasicBaseline() # initialize a basic CNN
 basic_baseline.load_data() # load the FashionMNIST data
-basic_baseline.train(num_epochs, lr)
-basic_baseline.test()
+basic_baseline.train(num_epochs, lr) # train the model for num_epochs epochs and at learning rate lr
+basic_baseline.test() # test the accuracy of the model
 ```
 
 ### FederatedBaseline
 To create, train, and test a federated CNN baseline perform the following:
 ```
-federated_baseline = FederatedBaseline(num_clients)
-federated_baseline.load_data()
-federated_baseline.train(num_epochs, rounds, lr)
-federated_baseline.test()
+federated_baseline = FederatedBaseline(num_clients) # initialize a FL framework with num_clients clients training CNNs
+federated_baseline.load_data() # load the FashionMNIST data
+federated_baseline.train(num_epochs, rounds, lr) # train the global model for num_epochs epochs, rounds rounds over the clients, and at learning rate lr
+federated_baseline.test() # test the accuracy of the global model
 ```
 
 # (internal) Strategy suggestion 
