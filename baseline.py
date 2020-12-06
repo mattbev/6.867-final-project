@@ -84,7 +84,7 @@ class BasicBaseline(Baseline):
         """        
         self.trainloader = trainloader
 
-    def train(self, num_epochs, lr=1e-3, verbose=False):
+    def train(self, num_epochs, lr=1e-3, verbose=False, print_summary=True):
         """
         train the basic baseline model
 
@@ -92,10 +92,20 @@ class BasicBaseline(Baseline):
             num_epochs (int): the number of epochs
             lr (float, optional): the learning rate. Defaults to 1e-3.
             verbose (bool, optional): do you want print output? Defaults to False.
+            print_summary (bool, optional): do you want to print a summary of your training params? Defaults to True.
 
         Returns:
             (list[floats]): the training losses
-        """        
+        """       
+
+        if print_summary:
+            print(f"Training FederatedBaseline model.")
+            print("========== HYPERPARAMETERS ==========")
+            print(f"num_epochs: {num_epochs}")
+            print(f"lr: {lr}")
+            print(f"verbose: {verbose}")
+            print("\n")
+
         criterion, optimizer = self._make_optimizer_and_loss(lr)
         return generic_train(
             model=self.model, 
@@ -113,7 +123,7 @@ class FederatedBaseline(Baseline):
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
 
-    def train(self, num_epochs, rounds, lr=1e-3, verbose=False):
+    def train(self, num_epochs, rounds, lr=1e-3, verbose=False, print_summary=True):
         """
         train the federated baseline model
 
@@ -122,10 +132,21 @@ class FederatedBaseline(Baseline):
             rounts (int): the number of rounds to train clients
             lr (float, optional): the learning rate. Defaults to 1e-3.
             verbose (bool, optional): do you want print output? Defaults to False.
+            print_summary (bool, optional): do you want to print a summary of your training params? Defaults to True.
 
         Returns:
             (list[floats]): the training losses
         """   
+
+        if print_summary:
+            print(f"Training FederatedBaseline mode with {self.num_clients} clients.")
+            print("========== HYPERPARAMETERS ==========")
+            print(f"num_epochs: {num_epochs}")
+            print(f"rounds: {rounds}")
+            print(f"lr: {lr}")
+            print(f"verbose: {verbose}")
+            print("\n")
+
         train_losses = []
         for r in range(rounds):
             client_trainloaders = self._make_client_trainloaders()
@@ -138,7 +159,8 @@ class FederatedBaseline(Baseline):
                 loss = client.train(
                     num_epochs=num_epochs,
                     lr=lr,
-                    verbose=verbose
+                    verbose=verbose,
+                    print_summary=False
                 )[-1]
                 client_models.append(client.model)
                 round_loss += loss
@@ -189,19 +211,19 @@ if __name__ == "__main__":
 
     # basic_baseline = BasicBaseline(device=device)
     # basic_baseline.load_data()
-    # print(basic_baseline.train(
+    # print("losses:", basic_baseline.train(
     #     num_epochs=num_epochs, 
     #     verbose=True))
-    # print(basic_baseline.test())
+    # print("accuracies:", basic_baseline.test())
 
     federated_baseline = FederatedBaseline(num_clients=num_clients)
     federated_baseline.load_data()
-    print(federated_baseline.train(
+    print("losses:", federated_baseline.train(
         num_epochs=num_epochs, 
         rounds=rounds, 
         lr=lr, 
         verbose=verbose))
-    print(federated_baseline.test())
+    print("accuracies:",  federated_baseline.test())
 
 
 
