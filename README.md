@@ -1,5 +1,5 @@
 # GAN Adversarial Attacks
-Generative adversarial attacks on federate using GANs and UAP.
+Generative adversarial attacks on federated learning using GANs and UAP.
 
 ## Usage
 There exist BasicBaseline and FederatedBaseline classes in `baseline.py`. The usage is very similar between the two.
@@ -20,6 +20,16 @@ federated_baseline = FederatedBaseline(num_clients) # initialize a FL framework 
 federated_baseline.load_data() # load the FashionMNIST data
 federated_baseline.train(num_epochs, rounds, lr) # train the global model for num_epochs epochs, rounds rounds over the clients, and at learning rate lr
 federated_baseline.test() # test the accuracy of the global model
+```
+
+### Running baslines from bash
+To run the basic baseline:
+```
+python3 baseline.py basic
+```
+To run the federated baseline:
+```
+python3 baseline.py federated
 ```
 
 # (internal) Strategy suggestion 
