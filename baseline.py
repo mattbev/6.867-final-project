@@ -24,7 +24,6 @@ class Baseline:
     def __init__(self, device="cpu"):
         """
         Baseline parent class
-
         Args:
             device (str, optional): where to run pytorch on. Defaults to "cpu".
         """        
@@ -82,7 +81,6 @@ class BasicBaseline(Baseline):
     def __init__(self, device="cpu"):
         """
         Basic CNN Baseline
-
         Args:
             device (str, optional): the device to run pytorch on. Defaults to "cpu".
         """        
@@ -101,11 +99,11 @@ class BasicBaseline(Baseline):
     def configure_attack(self, attack=NoAttack()):
         """
         configure malicious attacks on the model
-
         Args:
             attack (Attack, optional): The attack to apply to the model. Defaults to NoAttack().
         """        
         self.attack = attack
+
 
     def train(self, num_epochs, lr=1e-3, verbose=False, print_summary=True):
         """
@@ -145,7 +143,6 @@ class FederatedBaseline(Baseline):
     def __init__(self, num_clients, device="cpu"):
         """
         Federated CNN baseline model
-
         Args:
             num_clients (int): number of clients for federated learning
             device (str, optional): where to run pytorch on. Defaults to "cpu".
@@ -157,21 +154,30 @@ class FederatedBaseline(Baseline):
     def configure_attack(self, attack=NoAttack(), num_malicious=0):
         """
         configure malicious attacks against the model from clients
-
         Args:
             attack (Attack, optional): the attack type. Defaults to NoAttack().
             num_malicious (int, optional): number of malicious clients using this attack. Defaults to 0.
         """        
+        assert num_malicious <= self.num_clients, "num_malicious must be <= num_clients"
         self.attack = attack
         self.num_malicious = num_malicious
         self.attacks = [attack for i in range(num_malicious)]
         self.attacks.extend([NoAttack() for i in range(self.num_clients - num_malicious)])
 
+    
+    def manual_attack(self, attack_list):
+        """
+        manually set the attacks
+        Args:
+            attack_list (iterable[Attack]): the attacks
+        """        
+        assert len(attack_list) == self.num_clients
+        self.attacks = attack_list
+
 
     def train(self, num_epochs, rounds=1, lr=1e-3, malicious_upscale=1.0, verbose=False, print_summary=True):
         """
         train the federated baseline model
-
         Args:
             num_epochs (int): the number of epochs
             rounds (int, optional): the number of rounds to train clients. Defaults to 1.
@@ -216,7 +222,7 @@ class FederatedBaseline(Baseline):
                 if verbose:
                     print(f"--> client {i} trained, round {r} \t final loss: {round(loss, 3)}\n")
             train_losses.append(round_loss / self.num_clients)
-            self.aggregate(client_models, malicious_upscale)
+            self._aggregate(client_models, malicious_upscale)
         return train_losses
 
 
@@ -230,7 +236,7 @@ class FederatedBaseline(Baseline):
         return [DataLoader(x, batch_size=self.batch_size, shuffle=True) for x in trainset_split]
 
 
-    def aggregate(self, client_models, malicious_upscale):
+    def _aggregate(self, client_models, malicious_upscale):
         """
         global parameter updates aggregation.
         Args:
@@ -256,16 +262,16 @@ if __name__ == "__main__":
     batch_size = 32
     lr = 1e-3
     num_epochs = 2
-    num_clients = 1
-    rounds = 2
+    num_clients = 5
+    rounds = 1
     verbose = True
 
     #Threat Model
-    malicious_upscale = 7 #Scale factor for parameters update
-    num_malicious = 0
-    attack = NoAttack()
+    malicious_upscale = 1 #Scale factor for parameters update
+    num_malicious = 1
+    # attack = NoAttack()
     # attack = RandomAttack(num_classes=10)
-    # attack = TargetedAttack(target_label=4, target_class=7)
+    attack = TargetedAttack(target_label=4, target_class=7)
 
     args = sys.argv
     assert len(args) == 2, "incorrect number of arguments."
