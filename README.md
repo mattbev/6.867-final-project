@@ -2,24 +2,44 @@
 Generative adversarial attacks on federated learning using GANs and UAP.
 
 ## Usage
-There exist BasicBaseline and FederatedBaseline classes in `baseline.py`. The usage is very similar between the two.
 
-### BasicBaseline
+### Baseline Models
+Viewable in `baseline.py`.
+
 To create, train, and test a basic CNN baseline perform the following:
 ```
 basic_baseline = BasicBaseline() # initialize a basic CNN
 basic_baseline.load_data() # load the FashionMNIST data
+basic_baseline.configure_attack(attack) # configure attack 
 basic_baseline.train(num_epochs, lr) # train the model for num_epochs epochs and at learning rate lr
 basic_baseline.test() # test the accuracy of the model
 ```
 
-### FederatedBaseline
 To create, train, and test a federated CNN baseline perform the following:
 ```
 federated_baseline = FederatedBaseline(num_clients) # initialize a FL framework with num_clients clients training CNNs
 federated_baseline.load_data() # load the FashionMNIST data
+federated_baseline.configure_attack(attack, num_malicious) # configure num_malicious attackers using attack
 federated_baseline.train(num_epochs, rounds, lr) # train the global model for num_epochs epochs, rounds rounds over the clients, and at learning rate lr
 federated_baseline.test() # test the accuracy of the global model
+```
+
+### Attacks
+viewable in `utils/attacks.py`.
+
+for no attack:
+```
+attack = NoAttack()
+```
+
+for random attack:
+```
+attack = RandomAttack(num_classes) # where num_classes is the total number of classes in the data
+```
+
+for targeted attack:
+```
+attack = TargetedAttack(target_label, class_label) # set training labels of target_label to class_label
 ```
 
 ### Running baslines from bash
