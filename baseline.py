@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import sys
 import torch
 import numpy as np
 import torchvision.datasets as datasets
@@ -12,17 +13,25 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader, random_split
-from copy import deepcopy
 
-from models import FashionMNISTCNN
-from utils import generic_train, test_total_accurcy, test_class_accuracy
+from utils.models import FashionMNISTCNN
+from utils.basics import generic_train, test_total_accurcy, test_class_accuracy
+from utils.attacks import NoAttack, RandomAttack, TargetedAttack
+
 torch.manual_seed(1) #Set seed 
 
 class Baseline:
     def __init__(self, device="cpu"):
+        """
+        Baseline parent class
+
+        Args:
+            device (str, optional): where to run pytorch on. Defaults to "cpu".
+        """        
         self.device = torch.device(device)
         self.model = FashionMNISTCNN()
         self.model.to(self.device)
+
 
     def load_data(self, batch_size=32):
         """
@@ -42,6 +51,7 @@ class Baseline:
         self.trainloader = torch.utils.data.DataLoader(self.trainset, batch_size=batch_size, shuffle = True)
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=batch_size, shuffle=False)
 
+
     def test(self):
         """
         test the accuracy of the model
@@ -51,6 +61,7 @@ class Baseline:
         total_acc = test_total_accurcy(self.model, self.testloader, self.device)
         class_acc = test_class_accuracy(self.model, self.testloader, self.device)
         return total_acc, class_acc
+
 
     def _make_optimizer_and_loss(self, lr, momentum=0.9):
         """
@@ -69,8 +80,15 @@ class Baseline:
 
 class BasicBaseline(Baseline):
     def __init__(self, device="cpu"):
+        """
+        Basic CNN Baseline
+
+        Args:
+            device (str, optional): the device to run pytorch on. Defaults to "cpu".
+        """        
         super(BasicBaseline, self).__init__(device=device)
         
+
     def set_trainloader(self, trainloader):
         """
         set the trainloader for the model
@@ -79,16 +97,37 @@ class BasicBaseline(Baseline):
         """        
         self.trainloader = trainloader
 
-    def train(self, num_epochs, malicious,lr=1e-3, verbose=False):
+
+    def configure_attack(self, attack=NoAttack()):
+        """
+        configure malicious attacks on the model
+
+        Args:
+            attack (Attack, optional): The attack to apply to the model. Defaults to NoAttack().
+        """        
+        self.attack = attack
+
+    def train(self, num_epochs, lr=1e-3, verbose=False, print_summary=True):
         """
         train the basic baseline model
         Args:
-            num_epochs (int): the number of epochs
+            num_epochs (int): the number of epochs.
             lr (float, optional): the learning rate. Defaults to 1e-3.
             verbose (bool, optional): do you want print output? Defaults to False.
+            print_summary (bool, optional): print the hyperparameters. Defaults to True.
         Returns:
             (list[floats]): the training losses
-        """        
+        """  
+
+        if print_summary:
+            print(f"Training BasicBaseline model.")	            
+            print("========== HYPERPARAMETERS ==========")
+            print(f"num_epochs: {num_epochs}")	            
+            print(f"rounds: {rounds}")	            
+            print(f"lr: {lr}")	
+            print(f"attack: {attack}")
+            print("\n")
+
         criterion, optimizer = self._make_optimizer_and_loss(lr)
         return generic_train(
             model=self.model, 
@@ -96,9 +135,7 @@ class BasicBaseline(Baseline):
             trainloader=self.trainloader, 
             optimizer=optimizer, 
             criterion=criterion,  
-            malicious = malicious,
-            tl = tl,
-            tc = tc,
+            attack=self.attack,
             device=self.device, 
             verbose=verbose)
 
@@ -106,20 +143,58 @@ class BasicBaseline(Baseline):
 
 class FederatedBaseline(Baseline):
     def __init__(self, num_clients, device="cpu"):
+        """
+        Federated CNN baseline model
+
+        Args:
+            num_clients (int): number of clients for federated learning
+            device (str, optional): where to run pytorch on. Defaults to "cpu".
+        """        
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
 
-    def train(self, num_epochs, rounds, lr=1e-3, verbose=False):
+
+    def configure_attack(self, attack=NoAttack(), num_malicious=0):
+        """
+        configure malicious attacks against the model from clients
+
+        Args:
+            attack (Attack, optional): the attack type. Defaults to NoAttack().
+            num_malicious (int, optional): number of malicious clients using this attack. Defaults to 0.
+        """        
+        self.attack = attack
+        self.num_malicious = num_malicious
+        self.attacks = [attack for i in range(num_malicious)]
+        self.attacks.extend([NoAttack() for i in range(self.num_clients - num_malicious)])
+
+
+    def train(self, num_epochs, rounds=1, lr=1e-3, malicious_upscale=1.0, verbose=False, print_summary=True):
         """
         train the federated baseline model
+
         Args:
             num_epochs (int): the number of epochs
-            rounts (int): the number of rounds to train clients
+            rounds (int, optional): the number of rounds to train clients. Defaults to 1.
             lr (float, optional): the learning rate. Defaults to 1e-3.
+            malicious_upscale (float, optional): scale factor for parameter updates of the malicious models.
             verbose (bool, optional): do you want print output? Defaults to False.
+            print_summary (bool, optional): print the hyperparameters. Defaults to True.
         Returns:
             (list[floats]): the training losses
         """   
+
+        if print_summary:
+            print(f"Training FederatedBaseline model with {self.num_clients} clients.")	            
+            print("========== HYPERPARAMETERS ==========")
+            print(f"num_clients: {self.num_clients}")
+            print(f"num_epochs: {num_epochs}")	            
+            print(f"rounds: {rounds}")	            
+            print(f"lr: {lr}")	
+            print(f"num_malicious: {self.num_malicious}")
+            print(f"attack: {self.attack}")
+            print(f"malicious_upscale: {malicious_upscale}")
+            print("\n")         
+
         train_losses = []
         for r in range(rounds):
             client_trainloaders = self._make_client_trainloaders()
@@ -129,19 +204,21 @@ class FederatedBaseline(Baseline):
                 client = BasicBaseline(device=self.device)
                 client.set_trainloader(client_trainloaders[i])
                 client.model.load_state_dict(self.model.state_dict())
+                client.configure_attack(attack=self.attacks[i])
                 loss = client.train(
                     num_epochs=num_epochs,
                     lr=lr,
-                    malicious=malicious if i<= ml-1 else 0,
-                    verbose=verbose
+                    verbose=verbose,
+                    print_summary=False
                 )[-1]
                 client_models.append(client.model)
                 round_loss += loss
                 if verbose:
                     print(f"--> client {i} trained, round {r} \t final loss: {round(loss, 3)}\n")
             train_losses.append(round_loss / self.num_clients)
-            self.aggregate(self.model, client_models)
+            self.aggregate(client_models, malicious_upscale)
         return train_losses
+
 
     def _make_client_trainloaders(self):
         """
@@ -152,56 +229,76 @@ class FederatedBaseline(Baseline):
         trainset_split = random_split(self.trainset, [int(len(self.trainset) / self.num_clients) for _ in range(self.num_clients)])
         return [DataLoader(x, batch_size=self.batch_size, shuffle=True) for x in trainset_split]
 
-    @staticmethod
-    def aggregate(global_model, client_models):
+
+    def aggregate(self, client_models, malicious_upscale):
         """
         global parameter updates aggregation.
         Args:
-            global_model (torch.nn.Module): the global model
             client_models (list[torch.nn.Module]): the client models
+            malicious_upscale (float): scale factor for parameter updates
         """    
         ### take simple mean of the weights of models ###
-        global_dict = global_model.state_dict()
+        global_dict = self.model.state_dict()
         for k in global_dict.keys():
-            global_dict[k] = torch.stack([client_models[i].state_dict()[k].float()*upscale*(i <= ml -1) for i in range(len(client_models))], 0).mean(0)
-        global_model.load_state_dict(global_dict)
-        for model in client_models:
-            model.load_state_dict(global_model.state_dict())
+            update = [client_models[i].state_dict()[k].float() for i in range(len(client_models))]
+            update[:self.num_malicious] *= malicious_upscale
+            global_dict[k] = torch.stack(update, axis=0).mean(axis=0)
+        self.model.load_state_dict(global_dict)
             
+
+
+
 
 if __name__ == "__main__":
     # device = "cuda:0" #GPU
-    device = "cuda:0" #CPU
+    device = "cpu" #CPU
 
     batch_size = 32
-    lr = 0.001
+    lr = 1e-3
     num_epochs = 2
-    num_clients = 10
-    rounds = 1
+    num_clients = 1
+    rounds = 2
     verbose = True
 
     #Threat Model
-    ml =1 #Number of malicious participants
-    malicious = 2 # 0 no attack, 1 if universal attack, #2 if target attack
-    tl = 4 #Target label in a targeted attack
-    tc = 7  #Target missclassificatio.  Here, Classify sneakers as Dress
-    upscale = 7 #Scale factor for parameters update
+    malicious_upscale = 7 #Scale factor for parameters update
+    num_malicious = 0
+    attack = NoAttack()
+    # attack = RandomAttack(num_classes=10)
+    # attack = TargetedAttack(target_label=4, target_class=7)
 
-    # basic_baseline = BasicBaseline(device=device)
-    # basic_baseline.load_data()
-    # print(basic_baseline.train(
-    #     num_epochs=num_epochs, 
-    #     verbose=True))
-    # print(basic_baseline.test())
+    args = sys.argv
+    assert len(args) == 2, "incorrect number of arguments."
+    test = args[1]
 
-    federated_baseline = FederatedBaseline(num_clients=num_clients,device="cuda:0")
-    federated_baseline.load_data()
-    print(federated_baseline.train(
-        num_epochs=num_epochs, 
-        rounds=rounds, 
-        lr=lr, 
-        verbose=verbose))
-    print(federated_baseline.test())
+    if test == "basic":
+        basic_baseline = BasicBaseline(device=device)
+        basic_baseline.load_data()
+        basic_baseline.configure_attack(attack=attack)
+
+        print(basic_baseline.train(
+            num_epochs=num_epochs, 
+            lr=lr,
+            verbose=True))
+        
+        print(basic_baseline.test())
+
+    elif test == "federated":
+        federated_baseline = FederatedBaseline(num_clients=num_clients, device=device)
+        federated_baseline.load_data()
+        federated_baseline.configure_attack(attack=attack, num_malicious=num_malicious)
+
+        print(federated_baseline.train(
+            num_epochs=num_epochs, 
+            rounds=rounds, 
+            lr=lr, 
+            malicious_upscale=malicious_upscale,
+            verbose=verbose))
+        
+        print(federated_baseline.test())
+
+    else:
+        print("incorrect arguments.")
 
 
 

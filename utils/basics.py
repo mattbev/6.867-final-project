@@ -1,7 +1,6 @@
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
-
+import matplotlib.pyplot as plt  
 
 def imshow(img):
     """
@@ -15,7 +14,7 @@ def imshow(img):
     plt.show()
     
 
-def generic_train(model, num_epochs, trainloader, optimizer, criterion, malicious,tl,tc, device="cpu",verbose=False):
+def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, device="cpu", verbose=False):
     """
     train a model
     Args:
@@ -24,6 +23,7 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, maliciou
         trainloader (torch.utils.data.Dataloader): the training dataset dataloader
         optimizer (torch.optim.*): the function to optimize with
         criterion (torch.nn.*): the loss function
+        attack (Attack): the attack model
         device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
         verbose (bool, optional): extended print statement? Defaults to False.
     Returns:
@@ -40,10 +40,11 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, maliciou
         epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
-            if malicious ==1:
-                labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
-            if malicious ==2:
-                labels[labels == tl] = tc
+            # if malicious == 1:
+            #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
+            # if malicious == 2:
+            #     labels[labels == tl] = tc
+            labels = attack.run(labels).to(device)
             optimizer.zero_grad() # zero the parameter gradients
 
             # forward + backward + optimize
