@@ -7,7 +7,7 @@
 import torch
 import torch.nn as nn
 
-
+#Define the UAP as an additive noise to images, if X is a image in tensor form, UAP(X) returns X+delta, where delta is the UAP.
 class UAP(nn.Module):
     def __init__(self,
                 shape=(28, 28),
