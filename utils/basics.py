@@ -40,10 +40,6 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
         epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
-            # if malicious == 1:
-            #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
-            # if malicious == 2:
-            #     labels[labels == tl] = tc
             labels = attack.run(labels).to(device)
             optimizer.zero_grad() # zero the parameter gradients
 
