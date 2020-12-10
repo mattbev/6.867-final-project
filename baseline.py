@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from utils.models import FashionMNISTCNN
 from utils.basics import generic_train, test_total_accurcy, test_class_accuracy
-from utils.attacks import NoAttack, RandomAttack, TargetedAttack
+from utils.attacks import NoAttack, RandomAttack, TargetedAttack,UAPAttack
 
 torch.manual_seed(1) #Set seed 
 
@@ -96,13 +96,14 @@ class BasicBaseline(Baseline):
         self.trainloader = trainloader
 
 
-    def configure_attack(self, attack=NoAttack()):
+    def configure_attack(self, attack=NoAttack(), num_malicious = 1):
         """
         configure malicious attacks on the model
         Args:
             attack (Attack, optional): The attack to apply to the model. Defaults to NoAttack().
         """        
         self.attack = attack
+        self.num_malicious = num_malicious
 
 
     def train(self, num_epochs, lr=1e-3, verbose=False, print_summary=True):
@@ -305,8 +306,4 @@ if __name__ == "__main__":
 
     else:
         print("incorrect arguments.")
-
-
-
-
 
