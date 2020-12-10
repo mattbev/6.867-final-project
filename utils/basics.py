@@ -36,6 +36,10 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
     if type(device) == str:  
         device = torch.device(device) 
     model = model.to(device)
+
+    # train attack
+    attack.train(model, trainloader)
+
     model.train()
     train_losses = []
     for epoch in range(num_epochs):  # loop over the dataset multiple time
@@ -43,7 +47,9 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
         epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
-            labels = attack.run(labels).to(device)
+            inputs, labels = attack.run(inputs, labels)
+            inputs.to(device) 
+            labels.to(device)
             optimizer.zero_grad() # zero the parameter gradients
 
             # forward + backward + optimize

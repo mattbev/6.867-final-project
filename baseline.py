@@ -170,7 +170,7 @@ class FederatedBaseline(Baseline):
         Args:
             attack_list (iterable[Attack]): the attacks
         """        
-        assert len(attack_list) == self.num_clients
+        assert len(attack_list) == self.num_clients, "len(attack_list) must be == num_clients"
         self.attacks = attack_list
 
 
