@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from utils.models import FashionMNISTCNN
 from utils.basics import generic_train, test_total_accurcy, test_class_accuracy
-from utils.attacks import NoAttack, RandomAttack, TargetedAttack,UAPAttack
+from utils.attacks import NoAttack, RandomAttack, TargetedAttack, UAPAttack
 
 torch.manual_seed(1) #Set seed 
 
@@ -263,16 +263,16 @@ if __name__ == "__main__":
     batch_size = 32
     lr = 1e-3
     num_epochs = 2
-    num_clients = 5
-    rounds = 1
+    num_clients = 4
+    rounds = 2
     verbose = True
 
     #Threat Model
-    malicious_upscale = 1 #Scale factor for parameters update
+    malicious_upscale = 2 #Scale factor for parameters update
     num_malicious = 1
     # attack = NoAttack()
     # attack = RandomAttack(num_classes=10)
-    attack = TargetedAttack(target_label=4, target_class=7)
+    attack = TargetedAttack(target_label=3, target_class=7)
 
     args = sys.argv
     assert len(args) == 2, "incorrect number of arguments."
