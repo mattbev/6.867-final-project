@@ -6,7 +6,7 @@ from utils.defenses import FlippedLabelsDefense
 def main(global_model, client_models):
     defense = FlippedLabelsDefense(num_classes=1)
 
-    print(len(defense.run(global_model, client_models)))
+    print(len(defense.run(global_model, client_models, plot_name="fig.png", verbose=True)))
 
 
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     load_model(global_model, "basic")
 
     client_model_1 = BasicBaseline().model
-    load_model(client_model_1, "targeted_attack_7_4")
+    load_model(client_model_1, "no_attack")
 
     client_model_2 = BasicBaseline().model
     load_model(client_model_2, "targeted_attack_7_4")
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     load_model(client_model_3, "targeted_attack_7_4")
 
     client_models = [client_model_1, client_model_2, client_model_3]
-    client_models.extend([load_model(BasicBaseline().model, "no_attack") for i in range(20)])
+    client_models.extend([load_model(BasicBaseline().model, "targeted_attack_7_4") for i in range(20)])
     main(global_model=global_model, client_models=client_models)
 
     # tool = FederatedBaseline(num_clients=5)

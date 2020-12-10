@@ -40,10 +40,9 @@ class Baseline:
             batch_size (int, optional): the batch size. Defaults to 32.
         """        
         self.batch_size = batch_size
-        #transforming the PIL Image to tensors and normalize to [-1,1]
         transform = transforms.Compose(
             [transforms.ToTensor(),
-            transforms.Normalize((0.5, ), (0.5, ),)])
+            transforms.Normalize((0.5, ), (0.5, ),)]) # normalize to [-1,1]
         self.trainset = datasets.FashionMNIST(root="./data", train=True, download=True, transform=transform)
         self.testset = datasets.FashionMNIST(root="./data", train=False, download=True, transform=transform)
         
@@ -253,7 +252,7 @@ class FederatedBaseline(Baseline):
             malicious_upscale (float): scale factor for parameter updates
         """    
         ### take simple mean of the weights of models ###
-        safe_clients = self.defense.run(self.model, client_models)
+        safe_clients = self.defense.run(self.model, client_models, plot_name="fig.png")
         global_dict = self.model.state_dict()
         for k in global_dict.keys():
             update = [safe_clients[i].state_dict()[k].float() for i in range(len(safe_clients))]
@@ -270,14 +269,14 @@ if __name__ == "__main__":
 
     batch_size = 32
     lr = 1e-3
-    num_epochs = 2
-    num_clients = 10
+    num_epochs = 25
+    num_clients = 40
     rounds = 2
     verbose = True
 
     #Threat Model
-    malicious_upscale = 1 #Scale factor for parameters update
-    num_malicious = 2
+    malicious_upscale = 2 #Scale factor for parameters update
+    num_malicious = 5
     # attack = NoAttack()
     # attack = RandomAttack(num_classes=10)
     attack = TargetedAttack(target_label=4, target_class=7)
@@ -299,6 +298,8 @@ if __name__ == "__main__":
         
         print(basic_baseline.test())
 
+        # save_model(basic_baseline.model, "basic_25epochs_NoAttack")
+
     elif test == "federated":
         federated_baseline = FederatedBaseline(num_clients=num_clients, device=device)
         federated_baseline.load_data()
@@ -314,7 +315,7 @@ if __name__ == "__main__":
         
         print(federated_baseline.test())
 
-        save_model(federated_baseline.model, "fl_10clients_2rounds_2epochs_2maliciousFlip47_FlipDefense")
+        # save_model(federated_baseline.model, "fl_10clients_2rounds_2epochs_2maliciousFlip47_FlipDefense")
 
     else:
         print("incorrect arguments.")

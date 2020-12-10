@@ -16,12 +16,13 @@ class FlippedLabelsDefense:
         self.layer_name = layer_name
 
 
-    def run(self, global_model, client_models, verbose=False):
+    def run(self, global_model, client_models, plot_name=None, verbose=False):
         """
         identifies malicious clients with flipping label attack
         Args:
             global_model (nn.Module): the global model
             client_models (list[nn.Module]): the client models
+            plot_name (str, optional): the name of the figure to save. Defaults to None.
             verbose (boolean, optional): extended print output? Defaults to False.
         """    
         label_sets = []
@@ -49,21 +50,26 @@ class FlippedLabelsDefense:
                 print("Postscaled gradients: {}".format(str(scaled_param_diff)))
                 print("PCA reduced gradients: {}".format(str(dim_reduced_gradients)))
                 print("Dimensionally-reduced gradients shape: ({}, {})".format(len(dim_reduced_gradients), dim_reduced_gradients[0].shape[0]))
-                self.plot_gradients_2d(dim_reduced_gradients)
-
 
         malicious_clients = np.any(np.array(label_sets) - 1, axis=0) # maps most common label to 1, and other to 2
+        if plot_name:
+            self.plot_gradients_2d(dim_reduced_gradients, malicious_clients, plot_name)
+
         return [client_models[i] for i in range(len(client_models)) if malicious_clients[i] == False]
 
 
     @staticmethod
-    def plot_gradients_2d(gradients, name="fig.png"):
-        malicious = [0]
+    def plot_gradients_2d(gradients, labels, name="fig.png"):
+        # malicious = [0]
         for i in range(len(gradients)):
             gradient = gradients[i]
-            if i in malicious:
-                plt.scatter(gradient[0], gradient[1], color="blue", marker="x", s=1000, linewidth=5)
-            else:
-                plt.scatter(gradient[0], gradient[1], color="orange", s=180)
+            params = (("blue", "x") if labels[i] else ("orange", "."))
+            color, marker = params
+            plt.scatter(gradient[0], gradient[1], color=color, marker=marker, s=1000, linewidth=5)
+
+            # if i in malicious:
+            #     plt.scatter(gradient[0], gradient[1], color="blue", marker="x", s=1000, linewidth=5)
+            # else:
+            #     plt.scatter(gradient[0], gradient[1], color="orange", s=180)
 
         plt.savefig(f"figures/{name}")
