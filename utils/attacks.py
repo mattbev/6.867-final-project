@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from UAP_utils import UAP,trainUAP
 
 class NoAttack:
     def run(self, labels):
@@ -30,3 +31,25 @@ class TargetedAttack:
 
     def __repr__(self):
         return f"(attack=TargetedAttack, target_label={self.target_label}, target_class={self.target_class})"
+    
+class UAPAttack:
+    def __init__(self, target_label =3):
+        self.target_label = target_label
+    
+    def run(self, data_loader, target_network,Cuda = True):       
+        generator = UAP()
+        target_network = target_network
+        target_network.eval() 
+        if Cuda:
+            generator.cuda()
+        
+        
+        trainUAP(data_loader,
+            generator,
+            target_network)
+        
+
+        return generator
+    
+    def __repr__(self):
+        return f"(attack=UAP,target_label={self.target_label})"
