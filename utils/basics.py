@@ -1,4 +1,7 @@
+import os
+import pickle
 import torch
+import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt  
 
@@ -110,3 +113,27 @@ def test_class_accuracy(model, testloader, device="cpu"):
                 class_total[label] += 1
 
     return class_correct / class_total
+
+
+
+def initialize_weights(net):
+    for m in net.modules():
+        if isinstance(m, nn.Conv2d):
+            m.weight.data.normal_(0, 0.02)
+            m.bias.data.zero_()
+        elif isinstance(m, nn.ConvTranspose2d):
+            m.weight.data.normal_(0, 0.02)
+            m.bias.data.zero_()
+        elif isinstance(m, nn.Linear):
+            m.weight.data.normal_(0, 0.02)
+            m.bias.data.zero_()
+
+
+def save_model(model, name):
+    save_dir = os.path.join("saved_models", name)
+    torch.save(model.state_dict(), os.path.join("saved_models", f"{name}.pkl"))
+
+
+def load_model(model, name):
+    model.load_state_dict(torch.load(os.path.join("saved_models", f"{name}.pkl")))
+    return model

@@ -15,8 +15,9 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 
 from utils.models import FashionMNISTCNN
-from utils.basics import generic_train, test_total_accurcy, test_class_accuracy
+from utils.basics import generic_train, test_total_accurcy, test_class_accuracy, save_model
 from utils.attacks import NoAttack, RandomAttack, TargetedAttack
+from utils.defenses import NoDefense, FlippedLabelsDefense
 
 torch.manual_seed(1) #Set seed 
 
@@ -121,9 +122,8 @@ class BasicBaseline(Baseline):
             print(f"Training BasicBaseline model.")	            
             print("========== HYPERPARAMETERS ==========")
             print(f"num_epochs: {num_epochs}")	            
-            print(f"rounds: {rounds}")	            
             print(f"lr: {lr}")	
-            print(f"attack: {attack}")
+            print(f"attack: {self.attack}")
             print("\n")
 
         criterion, optimizer = self._make_optimizer_and_loss(lr)
@@ -173,6 +173,15 @@ class FederatedBaseline(Baseline):
         """        
         assert len(attack_list) == self.num_clients
         self.attacks = attack_list
+
+
+    def configure_defense(self, defense):
+        """
+        configure the federated learning defense
+        Args:
+            defense (Defense): the defense
+        """        
+        self.defense = defense
 
 
     def train(self, num_epochs, rounds=1, lr=1e-3, malicious_upscale=1.0, verbose=False, print_summary=True):
@@ -244,9 +253,10 @@ class FederatedBaseline(Baseline):
             malicious_upscale (float): scale factor for parameter updates
         """    
         ### take simple mean of the weights of models ###
+        safe_clients = self.defense.run(self.model, client_models)
         global_dict = self.model.state_dict()
         for k in global_dict.keys():
-            update = [client_models[i].state_dict()[k].float() for i in range(len(client_models))]
+            update = [safe_clients[i].state_dict()[k].float() for i in range(len(safe_clients))]
             update[:self.num_malicious] *= malicious_upscale
             global_dict[k] = torch.stack(update, axis=0).mean(axis=0)
         self.model.load_state_dict(global_dict)
@@ -256,22 +266,22 @@ class FederatedBaseline(Baseline):
 
 
 if __name__ == "__main__":
-    # device = "cuda:0" #GPU
-    device = "cpu" #CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     batch_size = 32
     lr = 1e-3
     num_epochs = 2
-    num_clients = 5
-    rounds = 1
+    num_clients = 10
+    rounds = 2
     verbose = True
 
     #Threat Model
     malicious_upscale = 1 #Scale factor for parameters update
-    num_malicious = 1
+    num_malicious = 2
     # attack = NoAttack()
     # attack = RandomAttack(num_classes=10)
     attack = TargetedAttack(target_label=4, target_class=7)
+    defense = FlippedLabelsDefense(num_classes=1)
 
     args = sys.argv
     assert len(args) == 2, "incorrect number of arguments."
@@ -293,7 +303,8 @@ if __name__ == "__main__":
         federated_baseline = FederatedBaseline(num_clients=num_clients, device=device)
         federated_baseline.load_data()
         federated_baseline.configure_attack(attack=attack, num_malicious=num_malicious)
-
+        federated_baseline.configure_defense(defense=defense)
+        
         print(federated_baseline.train(
             num_epochs=num_epochs, 
             rounds=rounds, 
@@ -302,6 +313,8 @@ if __name__ == "__main__":
             verbose=verbose))
         
         print(federated_baseline.test())
+
+        save_model(federated_baseline.model, "fl_10clients_2rounds_2epochs_2maliciousFlip47_FlipDefense")
 
     else:
         print("incorrect arguments.")

@@ -1,5 +1,7 @@
 from torch import nn
 
+from utils.basics import initialize_weights
+
 class FashionMNISTCNN(nn.Module):
     def __init__(self):
         super(FashionMNISTCNN, self).__init__()
@@ -8,13 +10,15 @@ class FashionMNISTCNN(nn.Module):
             nn.Conv2d(1, 16, kernel_size=5, padding=2),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2))
+            nn.MaxPool2d(2)
+        )
 
         self.conv2 = nn.Sequential(
             nn.Conv2d(16, 32, kernel_size=5, padding=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2))
+            nn.MaxPool2d(2)
+        )
 
         self.fc = nn.Linear(7*7*32, 10)
 
@@ -27,3 +31,38 @@ class FashionMNISTCNN(nn.Module):
         x = self.fc(x)
 
         return x
+
+
+
+class AttackGenerator(nn.Module):
+    def __init__(self, input_dim, output_dim, input_size=28):
+        super(AttackGenerator, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.input_size = input_size
+
+        self.fc = nn.Sequential(
+            nn.Linear(input_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Linear(1024, 128 * (self.input_size // 4) * (self.input_size // 4)),
+            nn.BatchNorm1d(128 * (self.input_size // 4) * (self.input_size // 4)),
+            nn.ReLU()
+        )
+        
+        self.deconv = nn.Sequential(
+            nn.ConvTranspose2d(128, 64, 4, 2, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.ConvTranspose2d(64, self.output_dim, 4, 2, 1),
+            nn.Tanh()
+        )
+
+        initialize_weights(self)
+
+    def forward(self, x):
+        x = self.fc(x)
+        x = x.view(-1, 128, (self.input_size // 4), (self.input_size // 4))
+        x = self.deconv(x)
+        return x
+
