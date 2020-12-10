@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt  
+from attacks import UAPAttack 
 
 def imshow(img):
     """
@@ -29,6 +30,10 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
     Returns:
         (list[float]): the training loss per epoch 
     """ 
+    if attack.type == 1:
+        generator =  UAPAttack()
+        generator = attack.run(trainloader,model)
+    
     print_every = 50
     if type(device) == str:  
         device = torch.device(device) 
@@ -44,7 +49,13 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
             #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
             # if malicious == 2:
             #     labels[labels == tl] = tc
-            labels = attack.run(labels).to(device)
+            if attack.type == 1:
+                for k in range(inputs.size(-4)):
+                    if labels[k]  ==attack.target_label:
+                        inputs[k]=  torch.squeeze(generator(inputs[k]).detach(), 0)
+            else:
+                labels = attack.run(labels).to(device)
+                
             optimizer.zero_grad() # zero the parameter gradients
 
             # forward + backward + optimize
@@ -114,3 +125,4 @@ def test_class_accuracy(model, testloader, device="cpu"):
                 class_total[label] += 1
 
     return class_correct / class_total
+
