@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec  9 23:30:16 2020
-
 @author: victo
 """
 #########################################################################
@@ -137,9 +136,10 @@ def trainUAP(data_loader,
         optimizer.step()
         #Projection
         generator.uap.data = torch.clamp(generator.uap.data, -epsilon, epsilon)
-        
+            
         iteration+=1
-        print('Iteration %d' %(iteration))
+        if iteration % 100 == 99:    # print every 100 ioteration
+            print('Optimization Iteration %d of %d' %(iteration,num_iterations))
 
     
          
