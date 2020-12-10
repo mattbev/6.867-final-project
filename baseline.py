@@ -207,6 +207,7 @@ class FederatedBaseline(Baseline):
             print(f"num_malicious: {self.num_malicious}")
             print(f"attack: {self.attack}")
             print(f"malicious_upscale: {malicious_upscale}")
+            print(f"defense: {self.defense}")
             print("\n")         
 
         train_losses = []
@@ -269,19 +270,22 @@ if __name__ == "__main__":
 
     batch_size = 32
     lr = 1e-3
-    num_epochs = 25
-    num_clients = 40
+    num_epochs = 1
+    num_clients = 20
     rounds = 2
     verbose = True
 
     #Threat Model
-    malicious_upscale = 2 #Scale factor for parameters update
-    num_malicious = 5
+    malicious_upscale = 20 #Scale factor for parameters update
+    num_malicious = 2
     # attack = NoAttack()
-    # attack = RandomAttack(num_classes=10)
-    attack = TargetedAttack(target_label=4, target_class=7)
-    defense = FlippedLabelsDefense(num_classes=1)
+    attack = RandomAttack(num_classes=10)
+    # attack = TargetedAttack(target_label=4, target_class=7)
+    # attack = UAPAttack(target_label=3)
 
+    # defense = NoDefense()
+    defense = FlippedLabelsDefense(num_classes=1)
+    
     args = sys.argv
     assert len(args) == 2, "incorrect number of arguments."
     test = args[1]

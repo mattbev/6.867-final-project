@@ -6,8 +6,11 @@ from scipy.cluster.hierarchy import fclusterdata
 
 
 class NoDefense:
-    def run(self, global_model, client_models):
+    def run(self, global_model, client_models, plot_name=None):
         return client_models
+
+    def __repr__(self):
+        return f"(attack=NoDefense)"
 
 
 class FlippedLabelsDefense:
@@ -73,3 +76,7 @@ class FlippedLabelsDefense:
             #     plt.scatter(gradient[0], gradient[1], color="orange", s=180)
 
         plt.savefig(f"figures/{name}")
+
+
+    def __repr__(self):
+        return f"(attack=FlippedLabelsDefense, num_classes={self.num_classes}, layer_name={self.layer_name})"

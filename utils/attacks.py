@@ -58,7 +58,8 @@ class UAPAttack(Attack):
         super(UAPAttack, self).__init__()
         self.target_label = target_label        
         
-    def train(self, target_model, dataloader, cuda=True):       
+    def train(self, target_model, dataloader, cuda=True):  
+        """ overrides parent class train function """     
         self.generator = UAP()
         target_model.eval() 
 
@@ -89,6 +90,7 @@ class GANAttack(Attack):
         self.discriminator = client_model
 
     def train(self, target_model, dataloader):
+        """ overrides parent class train function """  
         return self
 
     def run(self, inputs, labels):
