@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from utils.models import FashionMNISTCNN
 from utils.basics import generic_train, test_total_accurcy, test_class_accuracy, save_model
-from utils.attacks import NoAttack, RandomAttack, TargetedAttack
+from utils.attacks import NoAttack, RandomAttack, TargetedAttack, UAPAttack
 from utils.defenses import NoDefense, FlippedLabelsDefense
 
 torch.manual_seed(1) #Set seed 
