@@ -1,9 +1,12 @@
+
+
 import torch
 import numpy as np
 from UAP_utils import UAP,trainUAP
 
 class NoAttack:
     def run(self, labels):
+        self.type = 0
         return labels
 
     def __repr__(self):
@@ -12,7 +15,7 @@ class NoAttack:
 class RandomAttack:
     def __init__(self, num_classes):
         self.num_classes = num_classes
-
+        self.type = 0
     def run(self, labels):
         labels = torch.randint(0, self.num_classes, (np.size(labels, axis=0),))
         return labels
@@ -24,7 +27,7 @@ class TargetedAttack:
     def __init__(self, target_label, target_class):
         self.target_label = target_label
         self.target_class = target_class
-
+        self.type = 0
     def run(self, labels):
         labels[labels == self.target_label] = self.target_class
         return labels
@@ -35,7 +38,7 @@ class TargetedAttack:
 class UAPAttack:
     def __init__(self, target_label =3):
         self.target_label = target_label
-    
+        self.type = 1
     def run(self, data_loader, target_network,Cuda = True):       
         generator = UAP()
         target_network = target_network
