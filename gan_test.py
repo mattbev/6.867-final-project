@@ -1,10 +1,12 @@
-from baseline import BasicBaseline, FederatedBaseline
-from utils.basics import load_model
-from utils.models import AttackGenerator
-
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import numpy as np
+import matplotlib.pyplot as plt
+
+from baseline import BasicBaseline, FederatedBaseline
+from utils.basics import load_model, imshow, save_model, imsave
+from utils.models import AttackGenerator
 
 
 def main(verbose=True):
@@ -23,10 +25,12 @@ def main(verbose=True):
     batch_size = 32
     z_dim = 10
 
-    num_epochs = 2
-    lr = 1e-2
+    num_epochs = 30
+    lr = 1e-3
     optimizer = optim.Adam(generator.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
+
+    fixed_noise = torch.rand((batch_size, z_dim))
 
     train_losses = []
     for epoch in range(num_epochs):
@@ -49,15 +53,28 @@ def main(verbose=True):
                 if i % print_every == 0 and i != 0:  
                     print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
                     running_loss = 0.0
+                    test(generator, fixed_noise, epoch)
             epoch_loss += loss.item()
+
         train_losses.append(epoch_loss / len(trainloader)) #this is buggy
 
     return generator, train_losses
 
 
-# def test(model, label):
-
+    
+def test(model, z, epoch):
+    model.eval()
+    pred = model(z)
+    model.train()
+    
+    num_samples = 32
+    image_frame_dim = int(np.floor(np.sqrt(num_samples)))
+    samples = pred.data.numpy().transpose(0, 2, 3, 1)
+    # samples = (samples + 1) / 2
+    samples *= 255
+    imsave(samples[:image_frame_dim * image_frame_dim, :, :, :].astype(np.uint8), [image_frame_dim, image_frame_dim], f"figures/gan_fig_epoch{epoch}.png")
 
 
 if __name__ == "__main__":
-    main()
+    generator, losses = main()
+    save_model(generator, "gan_15epochs")

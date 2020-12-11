@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import sys
 import torch
 import numpy as np
+import pandas as pd
 import torchvision.datasets as datasets
 import torch.nn as nn
 import torch.optim as optim
@@ -148,6 +149,7 @@ class FederatedBaseline(Baseline):
         """        
         super(FederatedBaseline, self).__init__(device=device)
         self.num_clients = num_clients
+        self.round_log = []
 
 
     def configure_attack(self, attack=NoAttack(), num_malicious=0):
@@ -183,7 +185,7 @@ class FederatedBaseline(Baseline):
         self.defense = defense
 
 
-    def train(self, num_epochs, rounds=1, lr=1e-3, malicious_upscale=1.0, verbose=False, print_summary=True):
+    def train(self, num_epochs, rounds=1, lr=1e-3, malicious_upscale=1.0, log=True, verbose=False, print_summary=True):
         """
         train the federated baseline model
         Args:
@@ -191,6 +193,7 @@ class FederatedBaseline(Baseline):
             rounds (int, optional): the number of rounds to train clients. Defaults to 1.
             lr (float, optional): the learning rate. Defaults to 1e-3.
             malicious_upscale (float, optional): scale factor for parameter updates of the malicious models.
+            log (boolean, optional): to log the round-wise accuracies. Defaults to True.
             verbose (bool, optional): do you want print output? Defaults to False.
             print_summary (bool, optional): print the hyperparameters. Defaults to True.
         Returns:
@@ -232,6 +235,13 @@ class FederatedBaseline(Baseline):
                     print(f"--> client {i} trained, round {r} \t final loss: {round(loss, 3)}\n")
             train_losses.append(round_loss / self.num_clients)
             self._aggregate(client_models, malicious_upscale)
+            if log:
+                accuracies = self.test()
+                print(accuracies)
+                overall, classwise = accuracies
+                total = classwise.tolist()
+                total.insert(0, overall)
+                self.round_log.append(total)
         return train_losses
 
 
@@ -270,17 +280,17 @@ if __name__ == "__main__":
 
     batch_size = 32
     lr = 1e-3
-    num_epochs = 1
-    num_clients = 20
-    rounds = 2
+    num_epochs = 2
+    num_clients = 10
+    rounds = 1
     verbose = True
 
     #Threat Model
     malicious_upscale = 20 #Scale factor for parameters update
     num_malicious = 2
     # attack = NoAttack()
-    attack = RandomAttack(num_classes=10)
-    # attack = TargetedAttack(target_label=4, target_class=7)
+    # attack = RandomAttack(num_classes=10)
+    attack = TargetedAttack(target_label=3, target_class=7)
     # attack = UAPAttack(target_label=3)
 
     # defense = NoDefense()
@@ -317,10 +327,13 @@ if __name__ == "__main__":
             malicious_upscale=malicious_upscale,
             verbose=verbose))
         
-        print(federated_baseline.test())
+        # print(federated_baseline.test())
 
-        # save_model(federated_baseline.model, "fl_10clients_2rounds_2epochs_2maliciousFlip47_FlipDefense")
-
+        save_model(federated_baseline.model, "defense_cm")
+        # logs = federated_baseline.round_log
+        # columns = ["overall"] + [f"class{i}" for i in range(10)]
+        # df = pd.DataFrame(np.array(logs), columns=columns)
+        # df.to_csv("random_attack_with_defense_10rounds.csv")
     else:
         print("incorrect arguments.")
 

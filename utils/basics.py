@@ -1,9 +1,39 @@
 import os
 import pickle
 import torch
+import imageio
+import itertools
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt  
+from sklearn.metrics import confusion_matrix
+
+
+def merge(images, size):
+    h, w = images.shape[1], images.shape[2]
+    if (images.shape[3] in (3,4)):
+        c = images.shape[3]
+        img = np.zeros((h * size[0], w * size[1], c))
+        for idx, image in enumerate(images):
+            i = idx % size[1]
+            j = idx // size[1]
+            img[j * h:j * h + h, i * w:i * w + w, :] = image
+        return img
+    elif images.shape[3]==1:
+        img = np.zeros((h * size[0], w * size[1]))
+        for idx, image in enumerate(images):
+            i = idx % size[1]
+            j = idx // size[1]
+            img[j * h:j * h + h, i * w:i * w + w] = image[:,:,0]
+        return img
+    else:
+        raise ValueError('in merge(images,size) images parameter ''must have dimensions: HxW or HxWx3 or HxWx4')
+
+
+def imsave(images, size, path):
+    image = np.squeeze(merge(images, size))
+    return imageio.imwrite(path, image)
+
 
 def imshow(img):
     """
@@ -13,8 +43,10 @@ def imshow(img):
     """    
     img = img / 2 + 0.5  # unnormalize
     npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    # plt.imshow(np.transpose(npimg, (1, 2, 0)), cmap='gray')
+    plt.imshow(npimg, cmap='gray')
     plt.show()
+    plt.savefig("figures/gan_output.png")
     
 
 def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, device="cpu", verbose=False):
@@ -120,6 +152,47 @@ def test_class_accuracy(model, testloader, device="cpu"):
 
     return class_correct / class_total
 
+
+def test_confusion_matrix(model, testloader, device="cpu"):
+    predictions = torch.Tensor([])
+    groundtruths = torch.Tensor([])
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            predictions = torch.cat((predictions, predicted), dim=0)
+            groundtruths = torch.cat((groundtruths, labels), dim=0)
+    # print(predictions.shape)
+    # print(groundtruths.shape)
+    # stacked = torch.stack((groundtruths, predictions), dim=1)
+    # print(stacked.shape)
+    return confusion_matrix(groundtruths, predictions)
+    
+
+def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    return plt
 
 
 def initialize_weights(net):
