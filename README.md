@@ -1,5 +1,5 @@
-# GAN Adversarial Attacks
-Generative adversarial attacks on federated learning using GANs and UAP.
+# FL Adversarial Attacks and Defenses
+Adversarial attacks on federated learning with defenses.
 
 ## Usage
 
