@@ -6,6 +6,7 @@ import itertools
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt  
+<<<<<<< HEAD
 from sklearn.metrics import confusion_matrix
 from collections import OrderedDict
 
@@ -38,6 +39,9 @@ def imsave(images, size, path):
     image = np.squeeze(merge(images, size))
     return imageio.imwrite(path, image)
 
+=======
+from attacks import UAPAttack 
+>>>>>>> a0c26214891a00d32d425b95229420879d489357
 
 def imshow(img):
     """
@@ -68,14 +72,59 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
     Returns:
         (list[float]): the training loss per epoch 
     """ 
+    if attack.type == 1:
+        generator =  UAPAttack()
+        generator = attack.run(trainloader,model)
+    
     print_every = 50
     if type(device) == str:  
         device = torch.device(device) 
     model = model.to(device)
+    model.train()
+    train_losses = []
+    for epoch in range(num_epochs):  # loop over the dataset multiple time
+        running_loss = 0.0
+        epoch_loss = 0.0import torchimport torch
+import numpy as np
+import matplotlib.pyplot as plt  
+from utils.attacks import UAPAttack 
 
-    # train attack
-    attack.train(model, trainloader)
+def imshow(img):
+    """
+    show an image
+    Args:
+        img (TODO): the image to display
+    """    
+    img = img / 2 + 0.5  # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+    
 
+def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, device="cpu", verbose=False):
+    """
+    train a model
+    Args:
+        model (torch.nn.Module): the model to train
+        num_epochs (int): the number of epochs
+        trainloader (torch.utils.data.Dataloader): the training dataset dataloader
+        optimizer (torch.optim.*): the function to optimize with
+        criterion (torch.nn.*): the loss function
+        attack (Attack): the attack model
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+        verbose (bool, optional): extended print statement? Defaults to False.
+    Returns:
+        (list[float]): the training loss per epoch 
+    """ 
+    if attack.type == 1:
+        generator =  UAPAttack()
+        print("malicious client generating the UAP")
+        generator = attack.run(trainloader,model)
+        num_epochs =  4
+    print_every = 50
+    if type(device) == str:  
+        device = torch.device(device) 
+    model = model.to(device)
     model.train()
     train_losses = []
     for epoch in range(num_epochs):  # loop over the dataset multiple time
@@ -83,9 +132,17 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
         epoch_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
-            inputs, labels = attack.run(inputs, labels)
-            inputs.to(device) 
-            labels.to(device)
+            # if malicious == 1:
+            #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
+            # if malicious == 2:
+            #     labels[labels == tl] = tc
+            if attack.type == 1:
+                for k in range(inputs.size(-4)):
+                    if labels[k]  ==attack.target_label:
+                        inputs[k]=  torch.squeeze(generator(inputs[k]).detach(), 0)
+            else:
+                labels = attack.run(labels).to(device)
+                
             optimizer.zero_grad() # zero the parameter gradients
 
             # forward + backward + optimize
@@ -157,13 +214,202 @@ def test_class_accuracy(model, testloader, device="cpu"):
     return class_correct / class_total
 
 
-def test_confusion_matrix(model, testloader, device="cpu"):
-    predictions = torch.Tensor([])
-    groundtruths = torch.Tensor([])
+import numpy as np
+import matplotlib.pyplot as plt  
+from utils.attacks import UAPAttack 
+
+def imshow(img):
+    """
+    show an image
+    Args:
+        img (TODO): the image to display
+    """    
+    img = img / 2 + 0.5  # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+    
+
+def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, device="cpu", verbose=False):
+    """
+    train a model
+    Args:
+        model (torch.nn.Module): the model to train
+        num_epochs (int): the number of epochs
+        trainloader (torch.utils.data.Dataloader): the training dataset dataloader
+        optimizer (torch.optim.*): the function to optimize with
+        criterion (torch.nn.*): the loss function
+        attack (Attack): the attack model
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+        verbose (bool, optional): extended print statement? Defaults to False.
+    Returns:
+        (list[float]): the training loss per epoch 
+    """ 
+    if attack.type == 1:
+        generator =  UAPAttack()
+        generator = attack.run(trainloader,model)
+    
+    print_every = 50
+    if type(device) == str:  
+        device = torch.device(device) 
+    model = model.to(device)
+
+    # train attack
+    attack.train(model, trainloader)
+
+    model.train()
+    train_losses = []
+    for epoch in range(num_epochs):  # loop over the dataset multiple time
+        running_loss = 0.0
+        epoch_loss = 0.0
+        for i, data in enumerate(trainloader, 0):
+            inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
+<<<<<<< HEAD
+            inputs, labels = attack.run(inputs, labels)
+            inputs.to(device) 
+            labels.to(device)
+=======
+            # if malicious == 1:
+            #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
+            # if malicious == 2:
+            #     labels[labels == tl] = tc
+            if attack.type == 1:
+                for k in range(inputs.size(-4)):
+                    if labels[k]  ==attack.target_label:
+                        inputs[k]=  torch.squeeze(generator(inputs[k]).detach(), 0)
+            else:
+                labels = attack.run(labels).to(device)
+                
+>>>>>>> a0c26214891a00d32d425b95229420879d489357
+            optimizer.zero_grad() # zero the parameter gradients
+
+            # forward + backward + optimize
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            if verbose:
+                running_loss += loss.item()
+                if i % print_every == 0 and i != 0:  
+                    print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
+                    running_loss = 0.0
+            epoch_loss += loss.item()
+        train_losses.append(epoch_loss / len(trainloader)) #this is buggy
+
+    return train_losses
+            
+
+def test_total_accurcy(model, testloader, device="cpu"):
+    """
+    compute the (pure) accuracy over a test set 
+    Args:
+        model (torch.nn.Module): [description]
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+    Returns:
+        (float): the accuracy
+    """  
+    if type(device) == str:  
+        device = torch.device(device) 
+    correct = 0
+    total = 0
     with torch.no_grad():
         for data in testloader:
             images, labels = data[0].to(device), data[1].to(device)
             outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    return correct / total
+
+
+def test_class_accuracy(model, testloader, device="cpu"):
+    """
+    compute (pure) accuracy per class in the test set
+    Args:
+        model (torch.nn.Module): the model to evaluate
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+    """    
+    if type(device) == str:  
+        device = torch.device(device) 
+    class_correct = np.array([0. for i in range(10)])
+    class_total = np.array([0. for i in range(10)])
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    return class_correct / class_total
+
+
+<<<<<<< HEAD
+def test_confusion_matrix(model, testloader, device="cpu"):
+    predictions = torch.Tensor([])
+    groundtruths = torch.Tensor([])
+=======
+        for i, data in enumerate(trainloader, 0):
+            inputs, labels = data[0].to(device), data[1].to(device)# get the inputs; data is a list of [inputs, labels]
+            # if malicious == 1:
+            #     labels = torch.randint(0, 10, (np.size(labels,0),)).to(device)
+            # if malicious == 2:
+            #     labels[labels == tl] = tc
+            if attack.type == 1:
+                for k in range(inputs.size(-4)):
+                    if labels[k]  ==attack.target_label:
+                        inputs[k]=  torch.squeeze(generator(inputs[k]).detach(), 0)
+            else:
+                labels = attack.run(labels).to(device)
+                
+            optimizer.zero_grad() # zero the parameter gradients
+
+            # forward + backward + optimize
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            if verbose:
+                running_loss += loss.item()
+                if i % print_every == 0 and i != 0:  
+                    print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
+                    running_loss = 0.0
+            epoch_loss += loss.item()
+        train_losses.append(epoch_loss / len(trainloader)) #this is buggy
+
+    return train_losses
+            
+
+def test_total_accurcy(model, testloader, device="cpu"):
+    """
+    compute the (pure) accuracy over a test set 
+    Args:
+        model (torch.nn.Module): [description]
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+    Returns:
+        (float): the accuracy
+    """  
+    if type(device) == str:  
+        device = torch.device(device) 
+    correct = 0
+    total = 0
+>>>>>>> a0c26214891a00d32d425b95229420879d489357
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+<<<<<<< HEAD
             _, predicted = torch.max(outputs, 1)
             predictions = torch.cat((predictions, predicted), dim=0)
             groundtruths = torch.cat((groundtruths, labels), dim=0)
@@ -401,3 +647,37 @@ def plotfigs(generator,trainloader):
         t = torch.squeeze(t, 0)
         imshow(t.cpu())
         imshow(inputs.cpu())
+=======
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    return correct / total
+
+
+def test_class_accuracy(model, testloader, device="cpu"):
+    """
+    compute (pure) accuracy per class in the test set
+    Args:
+        model (torch.nn.Module): the model to evaluate
+        testloader (torch.utils.data.Dataloader): the test set dataloader
+        device (str or pytorch device, optional): where to evaluate pytorch variables. Defaults to "cpu".
+    """    
+    if type(device) == str:  
+        device = torch.device(device) 
+    class_correct = np.array([0. for i in range(10)])
+    class_total = np.array([0. for i in range(10)])
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    return class_correct / class_total
+
+>>>>>>> a0c26214891a00d32d425b95229420879d489357
