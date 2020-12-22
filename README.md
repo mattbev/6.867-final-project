@@ -68,7 +68,7 @@ defense = FlippedLabelsDefense(num_classes) # where num_classes denotes source c
 ```
 
 
-### Running baslines from bash
+### Running baselines from bash
 To run the basic baseline:
 ```
 python3 baseline.py basic
@@ -77,6 +77,12 @@ To run the federated baseline:
 ```
 python3 baseline.py federated
 ```
+
+
+# Future work
+1. finish GAN attack implementation 
+2. create a `main.py` file to be able to run everything from the command line with flag arguments
+3. reconfigure to work smoothly both on cpu and cuda
 
 # References
 client data reconstruction: https://github.com/Jaskiee/GAN-Attack-against-Federated-Deep-Learning
