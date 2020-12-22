@@ -79,12 +79,12 @@ python3 baseline.py federated
 ```
 
 
-# Future work
+## Future work
 1. finish GAN attack implementation 
 2. create a `main.py` file to be able to run everything from the command line with flag arguments
 3. reconfigure to work smoothly both on cpu and cuda
 
-# References
+## References
 client data reconstruction: https://github.com/Jaskiee/GAN-Attack-against-Federated-Deep-Learning
 
 UAP attack: https://github.com/phibenz/uap_virtual_data.pytorch
