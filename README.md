@@ -1,5 +1,5 @@
-# GAN Adversarial Attacks
-Generative adversarial attacks on federated learning using GANs and UAP.
+# Deep FL Adversarial Attacks and Defenses
+attacks and defenses on deep federated learning using and UAP and GANs.
 
 ## Usage
 
@@ -79,5 +79,7 @@ python3 baseline.py federated
 
 # References
 client data reconstruction: https://github.com/Jaskiee/GAN-Attack-against-Federated-Deep-Learning
+
 UAP attack: https://github.com/phibenz/uap_virtual_data.pytorch
+
 label flipping defense: https://arxiv.org/pdf/2007.08432v2.pdf (code at https://github.com/git-disl/DataPoisoning_FL)
