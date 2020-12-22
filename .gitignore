@@ -1,5 +1,10 @@
-# ignore our dataset
+# ignore our local stuff
 /data
+/results
+/figures
+analysis.py
+simple_defense_test.py
+simple_gan_test.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

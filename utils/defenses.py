@@ -63,18 +63,11 @@ class FlippedLabelsDefense:
 
     @staticmethod
     def plot_gradients_2d(gradients, labels, name="fig.png"):
-        # malicious = [0]
         for i in range(len(gradients)):
             gradient = gradients[i]
             params = (("blue", "x") if labels[i] else ("orange", "."))
             color, marker = params
             plt.scatter(gradient[0], gradient[1], color=color, marker=marker, s=1000, linewidth=5)
-
-            # if i in malicious:
-            #     plt.scatter(gradient[0], gradient[1], color="blue", marker="x", s=1000, linewidth=5)
-            # else:
-            #     plt.scatter(gradient[0], gradient[1], color="orange", s=180)
-
         plt.savefig(f"figures/{name}")
 
 

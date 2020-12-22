@@ -1,9 +1,10 @@
 import torch
 import numpy as np
+from torch import optim, nn
 
 from utils.models import AttackGenerator, FashionMNISTCNN
-from utils.basics import load_model
-from utils.UAP_utils import UAP, trainUAP
+from utils.basics import load_model, uap_train
+from utils.models import UAP
 
 
 class Attack:
@@ -58,7 +59,7 @@ class UAPAttack(Attack):
         super(UAPAttack, self).__init__()
         self.target_label = target_label        
         
-    def train(self, target_model, dataloader, cuda=True):  
+    def train(self, target_model, dataloader, cuda=False):  
         """ overrides parent class train function """     
         self.generator = UAP()
         target_model.eval() 
@@ -66,7 +67,7 @@ class UAPAttack(Attack):
         if cuda:
             self.generator.cuda()
         
-        trainUAP(dataloader,
+        uap_train(dataloader,
             self.generator,
             target_model)  
 
@@ -86,13 +87,50 @@ class UAPAttack(Attack):
 class GANAttack(Attack):
     def __init__(self, client_model):
         super(GANAttack, self).__init__()
-        self.generator = AttackGenerator(input_dim=10, output_dim=7*7*32)
+        self.generator = AttackGenerator(input_dim=10, output_dim=1)
         self.discriminator = client_model
 
-    def train(self, target_model, dataloader):
+    def train(self, target_model, dataloader, num_epochs=5, z_dim=10, lr=1e-3, verbose=True):
         """ overrides parent class train function """  
-        return self
+        self.generator.train()
+        self.discriminator.train()
+        
+        optimizer = optim.Adam(self.generator.parameters(), lr=lr)
+        criterion = nn.CrossEntropyLoss()
+
+        print_every = 10
+
+        train_losses = []
+        for epoch in range(num_epochs):
+            running_loss = 0.0
+            epoch_loss = 0.0
+            for i, data in enumerate(dataloader, 0):
+                labels = data[1]
+                z = torch.rand((labels.size()[0], z_dim))
+
+                optimizer.zero_grad()
+
+                gen_fake = self.generator(z)
+                dis_fake = self.discriminator(gen_fake)
+                loss = criterion(dis_fake, labels)
+                loss.backward()
+                optimizer.step()
+
+                if verbose:
+                    running_loss += loss.item()
+                    if i % print_every == 0 and i != 0:  
+                        print(f"[epoch: {epoch}, datapoint: {i}] \t loss: {round(running_loss / print_every, 3)}")
+                        running_loss = 0.0
+                epoch_loss += loss.item()
+
+            train_losses.append(epoch_loss / len(dataloader)) #this is buggy
+
+        return train_losses
+
 
     def run(self, inputs, labels):
         return 
+
+    def __repr__(self):
+        return f"(attack=GANAttack)"
 

@@ -211,6 +211,7 @@ class FederatedBaseline(Baseline):
             print(f"attack: {self.attack}")
             print(f"malicious_upscale: {malicious_upscale}")
             print(f"defense: {self.defense}")
+            print(f"log: {log}")
             print("\n")         
 
         train_losses = []
@@ -290,9 +291,10 @@ if __name__ == "__main__":
     num_malicious = 2
     # attack = NoAttack()
     # attack = RandomAttack(num_classes=10)
-    attack = TargetedAttack(target_label=3, target_class=7)
-    # attack = UAPAttack(target_label=3)
+    # attack = TargetedAttack(target_label=3, target_class=7)
+    attack = UAPAttack(target_label=3)
 
+    #Defense Model
     # defense = NoDefense()
     defense = FlippedLabelsDefense(num_classes=1)
     
@@ -327,9 +329,9 @@ if __name__ == "__main__":
             malicious_upscale=malicious_upscale,
             verbose=verbose))
         
-        # print(federated_baseline.test())
+        print(federated_baseline.test())
 
-        save_model(federated_baseline.model, "defense_cm")
+        # save_model(federated_baseline.model, "defense_cm")
         # logs = federated_baseline.round_log
         # columns = ["overall"] + [f"class{i}" for i in range(10)]
         # df = pd.DataFrame(np.array(logs), columns=columns)

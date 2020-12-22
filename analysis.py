@@ -18,8 +18,5 @@ def main():
     # cm_plt.savefig("figures/nodefense_cm.png")
     
 
-
-
-
 if __name__ == "__main__":
     main()
