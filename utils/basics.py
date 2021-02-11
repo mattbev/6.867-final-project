@@ -106,7 +106,7 @@ def generic_train(model, num_epochs, trainloader, optimizer, criterion, attack, 
     return train_losses
             
 
-def test_total_accurcy(model, testloader, device="cpu"):
+def test_total_accuracy(model, testloader, device="cpu"):
     """
     compute the (pure) accuracy over a test set 
     Args:
