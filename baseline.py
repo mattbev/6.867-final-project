@@ -58,7 +58,7 @@ class Baseline:
         Returns:
             (tuple[float]): the overall and class-wise accuracies of the model
         """        
-        total_acc = test_total_accurcy(self.model, self.testloader, self.device)
+        total_acc = test_total_accuracy(self.model, self.testloader, self.device)
         class_acc = test_class_accuracy(self.model, self.testloader, self.device)
         return total_acc, class_acc
 
